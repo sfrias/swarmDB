@@ -22,10 +22,24 @@ namespace bzn
     class pbft final : public bzn::pbft_base
     {
     public:
+        pbft(
+                std::shared_ptr<bzn::node_base> node,
+                const bzn::peers_list_t& peers
+            );
+
+        void start() override;
+        
+        bool is_primary() override;
+        const peer_address_t& get_primary() override;
+        void handle_message(const bzn::message& msg, std::shared_ptr<bzn::session_base> session) override;
+
 
     private:
         uint64_t view = 0;
+        uint64_t next_issued_sequence_number = 0;
 
+        std::shared_ptr<bzn::node_base> node;
+        const bzn::peers_list_t peers;
     };
 
 } // namespace bzn

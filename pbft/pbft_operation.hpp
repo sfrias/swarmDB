@@ -12,18 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
-
 namespace bzn
 {
 
-    // Encapsulate the networking interface; this is meant to abstract away not
-    // only the json/protobof transition but also message retransmission,
-    // deduplication, encryption, etc
-    class pbft_network_base
+    class pbft_operation
     {
-        public:
-
-
+    public:
+        
     };
 }
+

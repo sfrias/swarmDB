@@ -3,9 +3,8 @@ add_library(pbft STATIC
     pbft.hpp
     pbft.cpp
 
-    pbft_networking_base.hpp
-    pbft_networking.hpp
-    pbft_networking.cpp
+    pbft_operation.hpp
+    pbft_operation.cpp
   )
 
 target_link_libraries(pbft utils)

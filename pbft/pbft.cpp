@@ -14,3 +14,36 @@
 
 #include <pbft/pbft.hpp>
 
+using namespace bzn;
+
+pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t& peers)
+    : node(std::move(node))
+    , peers(peers)
+{
+    if (this->peers.empty())
+    {
+        throw std::runtime_error("No peers found!");
+    }
+
+}
+
+void
+pbft::handle_message(const bzn::message& msg, std::shared_ptr<bzn::session_base> session)
+{
+
+    LOG(debug) << "Recieved message:\n" << msg.toStyledString();
+    //Assume the message is a request for now
+
+    if(!this->is_primary())
+    {
+        LOG(error) << "Ignoring client request because I am not the leader";
+        // TODO - KEP-327
+        return;
+    }
+
+    //TODO: conditionally discard based on timestamp - KEP-328
+    //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
+    
+    session->send_message(NULL, true);
+
+}
