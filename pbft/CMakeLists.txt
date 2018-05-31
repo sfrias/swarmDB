@@ -9,3 +9,4 @@ add_library(pbft STATIC
 
 target_link_libraries(pbft utils)
 target_include_directories(pbft PRIVATE ${JSONCPP_INCLUDE_DIRS})
+add_subdirectory(test)

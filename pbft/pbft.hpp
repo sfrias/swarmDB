@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <include/bluzelle.hpp>
 #include <pbft/pbft_base.hpp>
 
 namespace bzn

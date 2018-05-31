@@ -12,12 +12,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+//#include "include/bluzelle.hpp"
+#include <cstdint>
+
 namespace bzn
 {
 
     class pbft_operation
     {
     public:
+
+        //pbft_operation(uint64_t view, uint64_t sequence, bzn::message msg);
+
+        const uint64_t view;
+        const uint64_t sequence;
+        //const bzn::message msg;
+
+        bool has_preprepare();
+
         
     };
 }
