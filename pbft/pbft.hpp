@@ -16,23 +16,24 @@
 
 #include <include/bluzelle.hpp>
 #include <pbft/pbft_base.hpp>
+#include <pbft/pbft_operation.hpp>
 
-namespace bzn
-{
+namespace bzn {
 
-    class pbft final : public bzn::pbft_base
-    {
+    class pbft final : public bzn::pbft_base {
     public:
         pbft(
                 std::shared_ptr<bzn::node_base> node,
-                const bzn::peers_list_t& peers
-            );
+                const bzn::peers_list_t &peers
+        );
 
         void start() override;
-        
+
         bool is_primary() override;
-        const peer_address_t& get_primary() override;
-        void handle_message(const bzn::message& msg, std::shared_ptr<bzn::session_base> session) override;
+
+        const peer_address_t &get_primary() override;
+
+        void handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base> session) override;
 
 
     private:
@@ -41,6 +42,10 @@ namespace bzn
 
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
+
+        void create_operation(const uint64_t& view, const uint64_t& sequence, const bzn::message& request);
+
+        std::map<bzn::operation_key_t, bzn::pbft_operation> operations;
     };
 
 } // namespace bzn

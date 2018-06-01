@@ -13,3 +13,21 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "pbft_operation.hpp"
+
+using namespace bzn;
+
+pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, bzn::message request)
+        : view(std::move(view)), sequence(std::move(sequence)), request(std::move(request)) {
+}
+
+void pbft_operation::record_preprepare() {
+    this->preprepare_seen = true;
+}
+
+bool pbft_operation::has_preprepare() {
+    return false;
+}
+
+operation_key_t pbft_operation::get_operation_key() {
+    return std::tuple<uint64_t, uint64_t, bzn::message>(this->view, this->sequence, this->request);
+}

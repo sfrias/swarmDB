@@ -19,13 +19,12 @@
 
 using namespace ::testing;
 
-class pbft_test : public Test
-{
+class pbft_test : public Test {
 
 
 };
 
-TEST_F(pbft_test, test_hello){
-  LOG(error) << "hello!";
+TEST_F(pbft_test, test_hello) {
+    LOG(error) << "hello!";
 
 }
