@@ -40,7 +40,8 @@ pbft::handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base>
     //TODO: conditionally discard based on timestamp - KEP-328
     //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
 
-    session->send_message(NULL, true);
+    // Supressing unused variable warning becasue this is a stub
+    (void) session;
 
 }
 
