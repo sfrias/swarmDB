@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+message pbft_msg
+{
+    oneof msg {
+        pbft_request request = 2;
+        pbft_preprepare preprepare = 3;
+   }
+}
+
+message pbft_preprepare
+{
+    uint64 sequence = 1;
+    uint64 view = 2;
+    pbft_request request = 3;
+}
+
+message pbft_request
+{
+    string operation = 1;
+    uint64 timestamp = 2;
+    string client = 3;
+}

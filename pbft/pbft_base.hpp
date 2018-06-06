@@ -19,6 +19,9 @@
 #include <node/node_base.hpp>
 #include <bootstrap/bootstrap_peers.hpp>
 #include <bootstrap/peer_address.hpp>
+#include <pbft/pbft_operation.hpp>
+
+#include <proto/bluzelle.pb.h>
 
 namespace bzn {
     using client_t = std::string; //placeholder
@@ -27,7 +30,9 @@ namespace bzn {
     public:
         virtual void start() = 0;
 
-        virtual void handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base> session) = 0;
+        virtual void handle_message(const pbft_msg& msg) = 0;
+
+        virtual const std::map<bzn::operation_key_t, bzn::pbft_operation>& outstanding_operations() = 0;
 
         virtual bool is_primary() = 0;
 

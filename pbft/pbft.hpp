@@ -16,7 +16,6 @@
 
 #include <include/bluzelle.hpp>
 #include <pbft/pbft_base.hpp>
-#include <pbft/pbft_operation.hpp>
 
 namespace bzn {
 
@@ -27,14 +26,15 @@ namespace bzn {
                 const bzn::peers_list_t &peers
         );
 
-        void start() override;
+        virtual void start() override;
 
-        bool is_primary() override;
+        virtual void handle_message(const pbft_msg& msg) override;
 
-        const peer_address_t &get_primary() override;
+        virtual const std::map<bzn::operation_key_t, bzn::pbft_operation>& outstanding_operations() override;
 
-        void handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base> session) override;
+        virtual bool is_primary() override;
 
+        virtual const peer_address_t &get_primary() override;
 
     private:
         uint64_t view = 0;

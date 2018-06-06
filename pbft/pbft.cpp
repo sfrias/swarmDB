@@ -26,9 +26,14 @@ pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers)
 }
 
 void
-pbft::handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base> session) {
+pbft::start(){
 
-    LOG(debug) << "Recieved message:\n" << msg.toStyledString();
+}
+
+void
+pbft::handle_message(const  pbft_msg& msg) {
+
+    LOG(debug) << "Recieved message:\n" << msg.DebugString();
     //Assume the message is a request for now
 
     if (!this->is_primary()) {
@@ -39,10 +44,21 @@ pbft::handle_message(const bzn::message &msg, std::shared_ptr<bzn::session_base>
 
     //TODO: conditionally discard based on timestamp - KEP-328
     //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
+}
 
-    // Supressing unused variable warning becasue this is a stub
-    (void) session;
+const std::map<bzn::operation_key_t, bzn::pbft_operation>&
+pbft::outstanding_operations() {
+    return operations;
+}
 
+bool
+pbft::is_primary() {
+    return true;
+}
+
+const peer_address_t&
+pbft::get_primary() {
+    throw "not implemented";
 }
 
 void
