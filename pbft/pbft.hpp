@@ -43,9 +43,13 @@ namespace bzn {
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
 
-        void create_operation(const uint64_t& view, const uint64_t& sequence, const pbft_request& request);
-
         std::map<bzn::operation_key_t, bzn::pbft_operation, bzn::operation_key_comparator> operations;
+
+        pbft_operation & find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request);
+        void do_preprepare(pbft_operation& op);
+
+        bzn::message wrap_message(pbft_msg& message);
+
     };
 
 } // namespace bzn

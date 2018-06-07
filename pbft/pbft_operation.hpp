@@ -36,12 +36,11 @@ namespace bzn {
         bool has_preprepare();
         void record_preprepare();
 
-
-    private:
-
         const uint64_t view;
         const uint64_t sequence;
         const pbft_request request;
+
+    private:
 
         bool preprepare_seen = false;
     };

@@ -13,7 +13,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <pbft/pbft.hpp>
+#include <utils/make_endpoint.hpp>
 #include <cstdint>
+#include <memory>
 
 using namespace bzn;
 
@@ -49,7 +51,22 @@ pbft::handle_message(const  pbft_msg& msg) {
     uint64_t request_view = this->view;
     uint64_t request_seq = this->next_issued_sequence_number++;
 
-    this->create_operation(request_view, request_seq, msg.request());
+    pbft_operation& op = this->find_operation(request_view, request_seq, msg.request());
+
+    this->do_preprepare(op);
+}
+
+void pbft::do_preprepare(pbft_operation& op) {
+    pbft_msg msg;
+    msg.set_allocated_preprepare(new pbft_preprepare());
+
+    msg.mutable_preprepare()->set_view(op.view);
+    msg.mutable_preprepare()->set_sequence(op.sequence);
+    msg.mutable_preprepare()->set_allocated_request(new pbft_request(op.request));
+
+    for(const auto& peer : this->peers){
+        this->node->send_message(make_endpoint(peer), std::make_shared<bzn::message>(this->wrap_message(msg)));
+    }
 
 }
 
@@ -68,10 +85,22 @@ pbft::get_primary() const {
     throw "not implemented";
 }
 
-void
-pbft::create_operation(const uint64_t& view, const uint64_t& sequence, const pbft_request& request) {
+// Find this node's record of an operation (creating it if this is the first time we've heard of it)
+pbft_operation &
+pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request) {
     bzn::operation_key_t key = std::tuple<uint64_t, uint64_t, pbft_request>(view, sequence, request);
     if(operations.count(key) == 0){
         operations.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(view, sequence, request));
     }
+
+    return operations.find(key)->second;
+}
+
+bzn::message
+pbft::wrap_message(pbft_msg& msg){
+    bzn::message json;
+    json["bzn-api"] = "pbft";
+    json["pbft-data"] = msg.SerializeAsString();
+
+    return json;
 }
