@@ -15,16 +15,21 @@
 #pragma once
 
 #include "include/bluzelle.hpp"
+#include "proto/bluzelle.pb.h"
 #include <cstdint>
 
 namespace bzn {
 
-    using operation_key_t = std::tuple<uint64_t, uint64_t, bzn::message>;
+    using operation_key_t = std::tuple<uint64_t, uint64_t, pbft_request>;
+
+    struct operation_key_comparator {
+        bool operator()(const operation_key_t&, const operation_key_t& b) const;
+    };
 
     class pbft_operation {
     public:
 
-        pbft_operation(uint64_t view, uint64_t sequence, bzn::message msg);
+        pbft_operation(uint64_t view, uint64_t sequence, pbft_request msg);
 
         operation_key_t get_operation_key();
 
@@ -36,7 +41,7 @@ namespace bzn {
 
         const uint64_t view;
         const uint64_t sequence;
-        const bzn::message request;
+        const pbft_request request;
 
         bool preprepare_seen = false;
     };

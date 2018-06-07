@@ -26,15 +26,15 @@ namespace bzn {
                 const bzn::peers_list_t &peers
         );
 
-        virtual void start() override;
+        void start() override;
 
-        virtual void handle_message(const pbft_msg& msg) override;
+        void handle_message(const pbft_msg& msg) override;
 
-        virtual const std::map<bzn::operation_key_t, bzn::pbft_operation>& outstanding_operations() override;
+        size_t outstanding_operations_count() const;
 
-        virtual bool is_primary() override;
+        bool is_primary() const override;
 
-        virtual const peer_address_t &get_primary() override;
+        const peer_address_t &get_primary() const override;
 
     private:
         uint64_t view = 0;
@@ -43,9 +43,9 @@ namespace bzn {
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
 
-        void create_operation(const uint64_t& view, const uint64_t& sequence, const bzn::message& request);
+        void create_operation(const uint64_t& view, const uint64_t& sequence, const pbft_request& request);
 
-        std::map<bzn::operation_key_t, bzn::pbft_operation> operations;
+        std::map<bzn::operation_key_t, bzn::pbft_operation, bzn::operation_key_comparator> operations;
     };
 
 } // namespace bzn

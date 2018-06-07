@@ -16,7 +16,19 @@
 
 using namespace bzn;
 
-pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, bzn::message request)
+bool
+operation_key_comparator::operator()(const operation_key_t& a, const operation_key_t& b) const
+{
+    if(std::get<0>(b) < std::get<0>(a)) return false;
+    if(std::get<1>(b) < std::get<1>(a)) return false;
+    if(std::get<2>(b).operation() < std::get<2>(a).operation()) return false;
+    if(std::get<2>(b).timestamp() < std::get<2>(a).timestamp()) return false;
+    if(std::get<2>(b).client() < std::get<2>(a).client()) return false;
+
+    return true;
+}
+
+pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, pbft_request request)
         : view(std::move(view)), sequence(std::move(sequence)), request(std::move(request)) {
 }
 
@@ -29,5 +41,5 @@ bool pbft_operation::has_preprepare() {
 }
 
 operation_key_t pbft_operation::get_operation_key() {
-    return std::tuple<uint64_t, uint64_t, bzn::message>(this->view, this->sequence, this->request);
+    return std::tuple<uint64_t, uint64_t, pbft_request>(this->view, this->sequence, this->request);
 }

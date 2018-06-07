@@ -32,11 +32,9 @@ namespace bzn {
 
         virtual void handle_message(const pbft_msg& msg) = 0;
 
-        virtual const std::map<bzn::operation_key_t, bzn::pbft_operation>& outstanding_operations() = 0;
+        virtual bool is_primary() const = 0;
 
-        virtual bool is_primary() = 0;
-
-        virtual const peer_address_t &get_primary() = 0;
+        virtual const peer_address_t &get_primary() const = 0;
 
     };
 }

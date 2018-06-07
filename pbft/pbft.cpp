@@ -34,7 +34,6 @@ void
 pbft::handle_message(const  pbft_msg& msg) {
 
     LOG(debug) << "Recieved message:\n" << msg.DebugString();
-    //Assume the message is a request for now
 
     if (!this->is_primary()) {
         LOG(error) << "Ignoring client request because I am not the leader";
@@ -44,26 +43,34 @@ pbft::handle_message(const  pbft_msg& msg) {
 
     //TODO: conditionally discard based on timestamp - KEP-328
     //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
+
+    // For now, we assume messages are requests
+
+    uint64_t request_view = this->view;
+    uint64_t request_seq = this->next_issued_sequence_number++;
+
+    this->create_operation(request_view, request_seq, msg.request());
+
 }
 
-const std::map<bzn::operation_key_t, bzn::pbft_operation>&
-pbft::outstanding_operations() {
-    return operations;
+size_t
+pbft::outstanding_operations_count() const {
+    return operations.size();
 }
 
 bool
-pbft::is_primary() {
+pbft::is_primary() const {
     return true;
 }
 
 const peer_address_t&
-pbft::get_primary() {
+pbft::get_primary() const {
     throw "not implemented";
 }
 
 void
-pbft::create_operation(const uint64_t& view, const uint64_t& sequence, const bzn::message& request) {
-    bzn::operation_key_t key = std::tuple<uint64_t, uint64_t, bzn::message>(view, sequence, request);
+pbft::create_operation(const uint64_t& view, const uint64_t& sequence, const pbft_request& request) {
+    bzn::operation_key_t key = std::tuple<uint64_t, uint64_t, pbft_request>(view, sequence, request);
     if(operations.count(key) == 0){
         operations.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(view, sequence, request));
     }
