@@ -62,19 +62,12 @@ namespace {
         ASSERT_EQ(1u, pbft.outstanding_operations_count());
     }
 
-    TEST_F(pbft_test, test_requests_dont_create_duplicate_operations_count) {
-        ASSERT_EQ(0u, pbft.outstanding_operations_count());
-        pbft.handle_message(request_msg);
-        pbft.handle_message(request_msg);
-        ASSERT_EQ(1u, pbft.outstanding_operations_count());
-    }
-
     TEST_F(pbft_test, test_requests_fire_preprepare) {
 
         // Need to look into gmock to figure out why this isn't being checked
         EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_preprepare, Eq(true))))
                     .Times(Exactly(TEST_PEER_LIST.size()));
 
-        //pbft.handle_message(request_msg);
+        pbft.handle_message(request_msg);
     }
 }

@@ -19,13 +19,13 @@ using namespace bzn;
 bool
 operation_key_comparator::operator()(const operation_key_t& a, const operation_key_t& b) const
 {
-    if(std::get<0>(b) < std::get<0>(a)) return false;
-    if(std::get<1>(b) < std::get<1>(a)) return false;
-    if(std::get<2>(b).operation() < std::get<2>(a).operation()) return false;
-    if(std::get<2>(b).timestamp() < std::get<2>(a).timestamp()) return false;
-    if(std::get<2>(b).client() < std::get<2>(a).client()) return false;
+    if(std::get<0>(b) > std::get<0>(a)) return true;
+    if(std::get<1>(b) > std::get<1>(a)) return true;
+    if(std::get<2>(b).operation() > std::get<2>(a).operation()) return true;
+    if(std::get<2>(b).timestamp() > std::get<2>(a).timestamp()) return true;
+    if(std::get<2>(b).client() > std::get<2>(a).client()) return true;
 
-    return true;
+    return false;
 }
 
 pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, pbft_request request)

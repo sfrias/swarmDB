@@ -54,7 +54,7 @@ pbft::handle_message(const pbft_msg &msg) {
     // First, look up our data on the operation -- creating the record if this is the first time we've heard of it
     uint64_t request_view, request_seq;
 
-    if (!msg.has_request()) {
+    if (msg.has_request()) {
         request_view = this->view;
         request_seq = this->next_issued_sequence_number++;
     } else {
@@ -102,8 +102,8 @@ const peer_address_t &
 pbft::get_primary() const {
     throw "not implemented";
 }
-
 // Find this node's record of an operation (creating it if this is the first time we've heard of it)
+
 pbft_operation &
 pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request) {
     bzn::operation_key_t key = std::tuple<uint64_t, uint64_t, pbft_request>(view, sequence, request);
@@ -112,7 +112,9 @@ pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_
                            std::forward_as_tuple(view, sequence, request));
     }
 
-    return operations.find(key)->second;
+    pbft_operation& result_ptr = operations.find(key) -> second;
+
+    return result_ptr;
 }
 
 bzn::message
