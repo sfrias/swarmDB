@@ -17,7 +17,9 @@
 #include <pbft/pbft_base.hpp>
 #include <pbft/pbft.hpp>
 #include <bootstrap/bootstrap_peers.hpp>
+#include <mocks/mock_node_base.hpp>
 #include <proto/bluzelle.pb.h>
+#include <json/json.h>
 
 using namespace ::testing;
 
@@ -32,28 +34,47 @@ namespace {
 
     class pbft_test : public Test {
     public:
-        bzn::pbft pbft;
-        pbft_msg msg;
+        pbft_msg request_msg;
         pbft_request req;
+        
+        std::shared_ptr<bzn::Mocknode_base> mock_node;
+        bzn::pbft pbft;
 
         pbft_test()
-                : pbft(nullptr, TEST_PEER_LIST)
+                : mock_node(std::make_shared<bzn::Mocknode_base>())
+                , pbft(mock_node, TEST_PEER_LIST)
         {
-            msg.set_allocated_request(&req);
+            request_msg.set_allocated_request(&req);
         }
     };
 
+    bool is_preprepare(std::shared_ptr<bzn::message> json){
+        pbft_msg msg;
+        msg.ParseFromString((*json)["pbft-data"].asString());
+
+        return msg.has_preprepare() && msg.view() > 0 && msg.sequence() > 0;
+    }
+
     TEST_F(pbft_test, test_requests_create_operations) {
         ASSERT_EQ(0u, pbft.outstanding_operations_count());
-        pbft.handle_message(msg);
+        pbft.handle_message(request_msg);
         ASSERT_EQ(1u, pbft.outstanding_operations_count());
     }
 
     TEST_F(pbft_test, test_requests_dont_create_duplicate_operations_count) {
         ASSERT_EQ(0u, pbft.outstanding_operations_count());
-        pbft.handle_message(msg);
-        pbft.handle_message(msg);
+        pbft.handle_message(request_msg);
+        pbft.handle_message(request_msg);
         ASSERT_EQ(1u, pbft.outstanding_operations_count());
+    }
 
+    TEST_F(pbft_test, test_requests_fire_preprepare) {
+
+        // Need to look into gmock to figure out why this isn't being checked
+        EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_preprepare, Eq(true))))
+                    .Times(Exactly(TEST_PEER_LIST.size()));
+
+        pbft.handle_message(request_msg);
+        pbft.handle_message(request_msg);
     }
 }

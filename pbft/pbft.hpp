@@ -37,8 +37,9 @@ namespace bzn {
         const peer_address_t &get_primary() const override;
 
     private:
-        uint64_t view = 0;
-        uint64_t next_issued_sequence_number = 0;
+        // Using 1 as first value here to distinguish from default value of 0 in protobuf
+        uint64_t view = 1;
+        uint64_t next_issued_sequence_number = 1;
 
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
