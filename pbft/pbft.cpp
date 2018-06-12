@@ -79,7 +79,8 @@ void pbft::do_preprepare(pbft_operation &op) {
 
     msg.set_view(op.view);
     msg.set_sequence(op.sequence);
-    msg.mutable_preprepare()->set_allocated_request(new pbft_request(op.request));
+    pbft_request* request = new pbft_request(op.request);
+    msg.mutable_preprepare()->set_allocated_request(request);
 
     for (const auto &peer : this->peers) {
         this->node->send_message(make_endpoint(peer), std::make_shared<bzn::message>(this->wrap_message(msg)));

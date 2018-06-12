@@ -35,8 +35,7 @@ namespace {
     class pbft_test : public Test {
     public:
         pbft_msg request_msg;
-        pbft_request req;
-        
+
         std::shared_ptr<bzn::Mocknode_base> mock_node;
         bzn::pbft pbft;
 
@@ -44,7 +43,9 @@ namespace {
                 : mock_node(std::make_shared<bzn::Mocknode_base>())
                 , pbft(mock_node, TEST_PEER_LIST)
         {
-            request_msg.set_allocated_request(&req);
+            request_msg.mutable_request()->set_operation("do some stuff");
+            request_msg.mutable_request()->set_client("bob");
+            request_msg.mutable_request()->set_timestamp(1);
         }
     };
 
@@ -74,7 +75,6 @@ namespace {
         EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_preprepare, Eq(true))))
                     .Times(Exactly(TEST_PEER_LIST.size()));
 
-        pbft.handle_message(request_msg);
-        pbft.handle_message(request_msg);
+        //pbft.handle_message(request_msg);
     }
 }
