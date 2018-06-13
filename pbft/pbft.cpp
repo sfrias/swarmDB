@@ -37,12 +37,6 @@ pbft::handle_message(const pbft_msg &msg) {
 
     LOG(debug) << "Recieved message:\n" << msg.DebugString();
 
-    if (!this->is_primary()) {
-        LOG(error) << "Ignoring client request because I am not the leader";
-        // TODO - KEP-327
-        return;
-    }
-
     //TODO: conditionally discard based on timestamp - KEP-328
 
     //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
@@ -52,25 +46,37 @@ pbft::handle_message(const pbft_msg &msg) {
 
 
     // First, look up our data on the operation -- creating the record if this is the first time we've heard of it
-    uint64_t request_view, request_seq;
 
-    if (msg.has_request()) {
-        request_view = this->view;
-        request_seq = this->next_issued_sequence_number++;
+    if (msg.has_request()){
+        this->handle_request(msg);
+    } else if (msg.has_preprepare()){
+        this->handle_preprepare(msg);
     } else {
-        request_view = msg.view();
-        request_seq = msg.sequence();
+        throw "Unsupported message type";
+    }
+}
+
+void pbft::handle_request(const pbft_msg& msg) {
+    if (!this->is_primary()) {
+        LOG(error) << "Ignoring client request because I am not the leader";
+        // TODO - KEP-327
+        return;
     }
 
+    uint64_t request_view = this->view;
+    uint64_t request_seq = this->next_issued_sequence_number++;
     pbft_operation &op = this->find_operation(request_view, request_seq, msg.request());
 
-    // Now, record this message with the operation, moving to a next stage if appropriate
-    if (msg.has_request()) {
-        this->do_preprepare(op);
-    } else if(msg.has_preprepare()) {
-        //TODO
-    }
+    do_preprepare(op);
+}
 
+void pbft::handle_preprepare(const pbft_msg& msg) {
+    msg.has_preprepare();
+
+    //uint64_t request_view = msg.view();
+    //uint64_t request_sequence = msg.sequence();
+
+    //pbft_operation &op = this->find_operation(msg.view(), msg.sequence(), msg.request());
 }
 
 void pbft::do_preprepare(pbft_operation &op) {

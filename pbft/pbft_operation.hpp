@@ -21,6 +21,7 @@
 namespace bzn {
 
     using operation_key_t = std::tuple<uint64_t, uint64_t, pbft_request>;
+    using log_key_t = std::tuple<uint64_t, uint64_t>;
 
     struct operation_key_comparator {
         bool operator()(const operation_key_t&, const operation_key_t& b) const;

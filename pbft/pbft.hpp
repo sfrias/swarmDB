@@ -41,12 +41,20 @@ namespace bzn {
         uint64_t view = 1;
         uint64_t next_issued_sequence_number = 1;
 
+        uint64_t low_water_mark = 1;
+        uint64_t high_water_mark = UINT64_MAX;
+
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
 
         std::map<bzn::operation_key_t, bzn::pbft_operation, bzn::operation_key_comparator> operations;
+        std::map<bzn::log_key_t, bzn::operation_key_t> accepted_preprepares;
 
         pbft_operation & find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request);
+
+        void handle_request(const pbft_msg& msg);
+        void handle_preprepare(const pbft_msg& msg);
+
         void do_preprepare(pbft_operation& op);
 
         bzn::message wrap_message(pbft_msg& message);

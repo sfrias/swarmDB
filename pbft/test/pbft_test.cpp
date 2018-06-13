@@ -20,6 +20,7 @@
 #include <mocks/mock_node_base.hpp>
 #include <proto/bluzelle.pb.h>
 #include <json/json.h>
+#include <set>
 
 using namespace ::testing;
 
@@ -49,11 +50,10 @@ namespace {
         }
     };
 
-    bool is_preprepare(std::shared_ptr<bzn::message> json){
-        pbft_msg msg;
-        msg.ParseFromString((*json)["pbft-data"].asString());
-
-        return msg.has_preprepare() && msg.view() > 0 && msg.sequence() > 0;
+    pbft_msg extract_pbft_msg(std::shared_ptr<bzn::message> json) {
+        pbft_msg result;
+        result.ParseFromString((*json)["pbft-data"].asString());
+        return result;
     }
 
     TEST_F(pbft_test, test_requests_create_operations) {
@@ -62,12 +62,34 @@ namespace {
         ASSERT_EQ(1u, pbft.outstanding_operations_count());
     }
 
-    TEST_F(pbft_test, test_requests_fire_preprepare) {
+    bool is_preprepare(std::shared_ptr<bzn::message> json){
+        pbft_msg msg = extract_pbft_msg(json);
 
-        // Need to look into gmock to figure out why this isn't being checked
+        return msg.has_preprepare() && msg.view() > 0 && msg.sequence() > 0;
+    }
+
+    TEST_F(pbft_test, test_requests_fire_preprepare) {
         EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_preprepare, Eq(true))))
                     .Times(Exactly(TEST_PEER_LIST.size()));
 
         pbft.handle_message(request_msg);
+    }
+
+    std::set<uint64_t> seen_sequences;
+    void save_sequences(const boost::asio::ip::tcp::endpoint& /*ep*/, std::shared_ptr<bzn::message> json) {
+        pbft_msg msg = extract_pbft_msg(json);
+        seen_sequences.insert(msg.sequence());
+    }
+
+    TEST_F(pbft_test, test_different_requests_get_different_sequences) {
+        EXPECT_CALL(*mock_node, send_message(_, _)).WillRepeatedly(Invoke(save_sequences));
+
+        pbft_msg request_msg2(request_msg);
+        request_msg2.mutable_request()->set_timestamp(2);
+
+        seen_sequences = std::set<uint64_t>();
+        pbft.handle_message(request_msg);
+        pbft.handle_message(request_msg2);
+        ASSERT_EQ(seen_sequences.size(), 2u);
     }
 }
