@@ -63,8 +63,10 @@ namespace bzn {
         void handle_preprepare(const pbft_msg& msg);
         void handle_prepare(const pbft_msg& msg);
 
+        void maybe_advance_operation_state(pbft_operation& op);
         void do_preprepare(pbft_operation& op);
         void do_prepare(pbft_operation& op);
+        void do_commit(pbft_operation& op);
 
         bzn::message wrap_message(const pbft_msg& message);
         void broadcast(const pbft_msg& message);

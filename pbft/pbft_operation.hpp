@@ -16,6 +16,7 @@
 
 #include "include/bluzelle.hpp"
 #include "proto/bluzelle.pb.h"
+#include "bootstrap/bootstrap_peers_base.hpp"
 #include <cstdint>
 #include <string>
 
@@ -30,15 +31,27 @@ namespace bzn {
         bool operator()(const operation_key_t&, const operation_key_t& b) const;
     };
 
+    enum class pbft_operation_state {
+        prepare,
+        commit,
+        committed
+    };
+
     class pbft_operation {
     public:
 
-        pbft_operation(uint64_t view, uint64_t sequence, pbft_request msg);
+        pbft_operation(uint64_t view, uint64_t sequence, pbft_request msg, const peers_list_t& peers);
 
         operation_key_t get_operation_key();
+        pbft_operation_state get_state();
 
-        bool has_preprepare();
         void record_preprepare();
+        bool has_preprepare();
+
+        void record_prepare(const pbft_msg& prepare);
+        bool is_prepared();
+
+        void begin_commit_phase();
 
         const uint64_t view;
         const uint64_t sequence;
@@ -47,8 +60,14 @@ namespace bzn {
         std::string debug_string();
 
     private:
+        const peers_list_t& peers;
+
+        pbft_operation_state state = pbft_operation_state::prepare;
 
         bool preprepare_seen = false;
+        std::set<bzn::uuid_t> prepares_seen;
+
+
     };
 }
 

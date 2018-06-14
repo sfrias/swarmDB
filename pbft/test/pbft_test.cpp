@@ -26,11 +26,12 @@ using namespace ::testing;
 
 namespace {
 
-    const bzn::uuid_t TEST_NODE_UUID{"f0645cc2-476b-485d-b589-217be3ca87d5"};
+    const bzn::uuid_t TEST_NODE_UUID{"uuid4"};
 
     const bzn::peers_list_t TEST_PEER_LIST{{"127.0.0.1", 8081, "name1", "uuid1"},
                                            {"127.0.0.1", 8082, "name2", "uuid2"},
-                                           {"127.0.0.1", 8084, "name3", TEST_NODE_UUID}};
+                                           {"127.0.0.1", 8083, "name3", "uuid3"},
+                                           {"127.0.0.1", 8084, "name4", TEST_NODE_UUID}};
 
 
     class pbft_test : public Test {

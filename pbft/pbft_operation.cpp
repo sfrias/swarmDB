@@ -29,8 +29,11 @@ operation_key_comparator::operator()(const operation_key_t& a, const operation_k
     return false;
 }
 
-pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, pbft_request request)
-        : view(std::move(view)), sequence(std::move(sequence)), request(std::move(request)) {
+pbft_operation::pbft_operation(uint64_t view, uint64_t sequence, pbft_request request, const peers_list_t& peers)
+        : view(std::move(view))
+        , sequence(std::move(sequence))
+        , request(std::move(request))
+        , peers(peers) {
 }
 
 void pbft_operation::record_preprepare() {
@@ -41,8 +44,29 @@ bool pbft_operation::has_preprepare() {
     return false;
 }
 
+void pbft_operation::record_prepare(const pbft_msg& prepare) {
+    this->prepares_seen.insert(prepare.sender());
+}
+
+bool pbft_operation::is_prepared() {
+    size_t f = (this->peers.size() - 1) / 3;
+    return this->has_preprepare() && this->prepares_seen.size() >= (2*f + 1);
+}
+
+void pbft_operation::begin_commit_phase() {
+    if(!this->is_prepared() || this->state != pbft_operation_state::prepare) {
+        throw "Illegaly tried to move to commit phase";
+    }
+
+    this->state = pbft_operation_state::commit;
+}
+
 operation_key_t pbft_operation::get_operation_key() {
     return std::tuple<uint64_t, uint64_t, pbft_request>(this->view, this->sequence, this->request);
+}
+
+pbft_operation_state pbft_operation::get_state() {
+    return this->state;
 }
 
 std::string pbft_operation::debug_string() {

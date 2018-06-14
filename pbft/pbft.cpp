@@ -41,12 +41,6 @@ pbft::handle_message(const pbft_msg &msg) {
         return;
     }
 
-    //TODO: pbft says messages (other than requests) should always have view/seq numbers, but byzantine clients
-    // can fail to include them. Therefore, we need to validate each message - KEP-375
-
-
-    // First, look up our data on the operation -- creating the record if this is the first time we've heard of it
-
     switch(msg.type()){
         case PBFT_MSG_TYPE_REQUEST :
             this->handle_request(msg);
@@ -63,6 +57,9 @@ pbft::handle_message(const pbft_msg &msg) {
 }
 
 bool pbft::preliminary_filter_msg(const pbft_msg& msg){
+
+    // TODO: Crypto verification goes here - KEP-331, KEP-345
+
     auto t = msg.type();
     if(t == PBFT_MSG_TYPE_PREPREPARE || t == PBFT_MSG_TYPE_PREPARE || t == PBFT_MSG_TYPE_COMMIT) {
         if(msg.view() != this->view) {
@@ -95,7 +92,6 @@ void pbft::handle_request(const pbft_msg& msg) {
 
     //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
 
-
     uint64_t request_view = this->view;
     uint64_t request_seq = this->next_issued_sequence_number++;
     pbft_operation &op = this->find_operation(request_view, request_seq, msg.request());
@@ -105,41 +101,35 @@ void pbft::handle_request(const pbft_msg& msg) {
 
 void pbft::handle_preprepare(const pbft_msg& msg) {
 
-    if (msg.view() != this->view) {
-        LOG(debug) << "Rejecting preprepare because its view " << msg.view() << " does not match my view " << this->view << "\n";
-        return;
-    }
-
     // If we've already accepted a preprepare for this view+sequence, and it's not this one, then we should reject this one
     // Note that if we get the same preprepare more than once, we can still accept it
     log_key_t log_key(msg.view(), msg.sequence());
     auto lookup = this->accepted_preprepares.find(log_key);
+
     if (lookup != this->accepted_preprepares.end()
         && std::get<2>(lookup->second).SerializeAsString() != msg.request().SerializeAsString()) {
 
         LOG(debug) << "Rejecting preprepare because I've already accepted a conflicting one \n";
         return;
+    } else {
+        pbft_operation &op = this->find_operation(msg);
+        op.record_preprepare();
+
+        // This assignment will be redundant if we've seen this preprepare before, but that's fine
+        accepted_preprepares[log_key] = op.get_operation_key();
+
+        this->do_prepare(op);
+        this->maybe_advance_operation_state(op);
     }
-
-    if (msg.sequence() < this->low_water_mark || msg.sequence() > this->high_water_mark) {
-        LOG(debug) << "Rejecting preprepare because its sequence number " << msg.sequence() << " is unreasonable \n";
-        return;
-    }
-
-    // At this point we've decided to accept the preprepare
-
-    pbft_operation& op = this->find_operation(msg);
-    op.record_preprepare();
-
-    // This assignment will be redundant if we've seen this preprepare before, but that's fine
-    accepted_preprepares[log_key] = op.get_operation_key();
-
-    this->do_prepare(op);
 }
 
 void pbft::handle_prepare(const pbft_msg& msg) {
-    msg.sequence();
 
+    // Prepare messages are never rejected, assumping the sanity checks passed
+    pbft_operation &op = this->find_operation(msg);
+
+    op.record_prepare(msg);
+    this->maybe_advance_operation_state(op);
 }
 
 void pbft::broadcast(const pbft_msg& msg) {
@@ -149,6 +139,14 @@ void pbft::broadcast(const pbft_msg& msg) {
         this->node->send_message(make_endpoint(peer), json_ptr);
     }
 }
+
+void pbft::maybe_advance_operation_state(pbft_operation& op){
+    if(op.get_state() == pbft_operation_state::prepare && op.is_prepared()) {
+        this->do_commit(op);
+        op.begin_commit_phase();
+    }
+}
+
 
 void pbft::do_preprepare(pbft_operation &op) {
     LOG(debug) << "Doing preprepare for operation " << op.debug_string();
@@ -174,7 +172,10 @@ void pbft::do_prepare(pbft_operation &op) {
     msg.set_sender(this->uuid);
 
     this->broadcast(msg);
+}
 
+void pbft::do_commit(pbft_operation &op) {
+    LOG(debug) << "Doing commit for operation " << op.debug_string();
 }
 
 size_t
@@ -202,7 +203,7 @@ pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_
     bzn::operation_key_t key = std::tuple<uint64_t, uint64_t, pbft_request>(view, sequence, request);
     if (operations.count(key) == 0) {
         operations.emplace(std::piecewise_construct, std::forward_as_tuple(key),
-                           std::forward_as_tuple(view, sequence, request));
+                           std::forward_as_tuple(view, sequence, request, this->peers));
     }
 
     pbft_operation& result_ptr = operations.find(key) -> second;
