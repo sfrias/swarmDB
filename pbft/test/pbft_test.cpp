@@ -53,7 +53,7 @@ namespace {
             preprepare_msg = pbft_msg(request_msg);
             preprepare_msg.set_type(PBFT_MSG_TYPE_PREPREPARE);
             preprepare_msg.set_sequence(19);
-            preprepare_msg.set_view(4);
+            preprepare_msg.set_view(1);
         }
     };
 
@@ -100,16 +100,48 @@ namespace {
         ASSERT_EQ(seen_sequences.size(), 2u);
     }
 
-    //bool is_prepare(std::shared_ptr<bzn::message> json){
-    //    pbft_msg msg = extract_pbft_msg(json);
+    bool is_prepare(std::shared_ptr<bzn::message> json){
+        pbft_msg msg = extract_pbft_msg(json);
 
-    //    return msg.type() == PBFT_MSG_TYPE_PREPARE && msg.view() > 0 && msg.sequence() > 0;
-    //}
+        return msg.type() == PBFT_MSG_TYPE_PREPARE && msg.view() > 0 && msg.sequence() > 0;
+    }
 
     //bool prepare_matches_preprepare(std::shared_ptr<bzn::message> /*prepare*/, std::shared_ptr<bzn::message> /*preprepare*/) {
     //    return true;
     //}
 
-    //TEST_F(pbft_Test, test_preprepare_triggers_prepare) {
+    TEST_F(pbft_test, test_preprepare_triggers_prepare) {
+        EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_prepare, Eq(true))))
+                .Times(Exactly(TEST_PEER_LIST.size()));
+
+        this->pbft.handle_message(this->preprepare_msg);
+    }
+
+    TEST_F(pbft_test, test_wrong_view_preprepare_rejected) {
+        EXPECT_CALL(*mock_node, send_message(_, _)).Times(Exactly(0));
+
+        pbft_msg preprepare2(this->preprepare_msg);
+        preprepare2.set_view(6);
+
+        this->pbft.handle_message(preprepare2);
+    }
+
+    TEST_F(pbft_test, test_no_duplicate_prepares_same_sequence_number) {
+        EXPECT_CALL(*mock_node, send_message(_, _)).Times(Exactly(TEST_PEER_LIST.size()));
+
+        pbft_msg prepreparea(this->preprepare_msg);
+        pbft_msg preprepareb(this->preprepare_msg);
+        pbft_msg prepreparec(this->preprepare_msg);
+        pbft_msg preprepared(this->preprepare_msg);
+
+        preprepareb.mutable_request()->set_timestamp(99);
+        prepreparec.mutable_request()->set_operation("somethign else");
+        preprepared.mutable_request()->set_client("certainly not bob");
+
+        this->pbft.handle_message(prepreparea);
+        this->pbft.handle_message(preprepareb);
+        this->pbft.handle_message(prepreparec);
+        this->pbft.handle_message(prepreparea);
+    }
 
 }
