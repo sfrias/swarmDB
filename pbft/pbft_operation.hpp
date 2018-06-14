@@ -17,10 +17,13 @@
 #include "include/bluzelle.hpp"
 #include "proto/bluzelle.pb.h"
 #include <cstdint>
+#include <string>
 
 namespace bzn {
 
+    // View, sequence
     using operation_key_t = std::tuple<uint64_t, uint64_t, pbft_request>;
+    // View, sequence
     using log_key_t = std::tuple<uint64_t, uint64_t>;
 
     struct operation_key_comparator {
@@ -40,6 +43,8 @@ namespace bzn {
         const uint64_t view;
         const uint64_t sequence;
         const pbft_request request;
+
+        std::string debug_string();
 
     private:
 

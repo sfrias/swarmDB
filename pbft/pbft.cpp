@@ -47,12 +47,15 @@ pbft::handle_message(const pbft_msg &msg) {
 
     // First, look up our data on the operation -- creating the record if this is the first time we've heard of it
 
-    if (msg.has_request()){
-        this->handle_request(msg);
-    } else if (msg.has_preprepare()){
-        this->handle_preprepare(msg);
-    } else {
-        throw "Unsupported message type";
+    switch(msg.type()){
+        case PBFT_MSG_TYPE_REQUEST :
+            this->handle_request(msg);
+            break;
+        case PBFT_MSG_TYPE_PREPREPARE :
+            this->handle_preprepare(msg);
+            break;
+        default :
+            throw "Unsupported message type";
     }
 }
 
@@ -67,30 +70,67 @@ void pbft::handle_request(const pbft_msg& msg) {
     uint64_t request_seq = this->next_issued_sequence_number++;
     pbft_operation &op = this->find_operation(request_view, request_seq, msg.request());
 
-    do_preprepare(op);
+    this->do_preprepare(op);
 }
 
 void pbft::handle_preprepare(const pbft_msg& msg) {
-    msg.has_preprepare();
+    uint64_t request_view = msg.view();
+    uint64_t request_sequence = msg.sequence();
+    log_key_t log_key(request_view, request_sequence);
 
-    //uint64_t request_view = msg.view();
-    //uint64_t request_sequence = msg.sequence();
+    pbft_operation& op = this->find_operation(request_view, request_sequence, msg.request());
 
-    //pbft_operation &op = this->find_operation(msg.view(), msg.sequence(), msg.request());
+    if (request_view != this->view) {
+        LOG(debug) << "Rejecting preprepare because its view " << request_view << " does not match my view " << this->view << "\n";
+        return;
+    }
+
+    // If we've already accepted a preprepare for this view+sequence, and it's not this one
+    // Note that if we get the same preprepare more than once, we can still accept it
+    auto lookup = this->accepted_preprepares.find(log_key);
+    if (lookup != this->accepted_preprepares.end()
+        && std::get<2>(lookup->second).SerializeAsString() != msg.request().SerializeAsString()) {
+
+        LOG(debug) << "Rejecting preprepare because I've already accepted a conflicting one \n";
+        return;
+    }
+
+    if (request_sequence < this->low_water_mark || request_sequence > this->high_water_mark) {
+        LOG(debug) << "Rejecting preprepare because its sequence number " << request_sequence << " is unreasonable \n";
+        return;
+    }
+
+    // At this point we've decided to accept the preprepare
+
+    if (lookup != this->accepted_preprepares.end()) {
+        accepted_preprepares[log_key] = operation_key_t(request_view, request_sequence, msg.request());
+    }
+
+    this->do_prepare(op);
+}
+
+void pbft::broadcast(const pbft_msg& msg) {
+    auto json_ptr = std::make_shared<bzn::message>(this->wrap_message(msg));
+
+    for (const auto &peer : this->peers) {
+        this->node->send_message(make_endpoint(peer), json_ptr);
+    }
 }
 
 void pbft::do_preprepare(pbft_operation &op) {
+    LOG(debug) << "Doing preprepare for operation " << op.debug_string();
     pbft_msg msg;
-    msg.set_allocated_preprepare(new pbft_preprepare());
 
+    msg.set_type(PBFT_MSG_TYPE_PREPREPARE);
     msg.set_view(op.view);
     msg.set_sequence(op.sequence);
-    pbft_request* request = new pbft_request(op.request);
-    msg.mutable_preprepare()->set_allocated_request(request);
+    msg.set_allocated_request(new pbft_request(op.request));
 
-    for (const auto &peer : this->peers) {
-        this->node->send_message(make_endpoint(peer), std::make_shared<bzn::message>(this->wrap_message(msg)));
-    }
+    this->broadcast(msg);
+}
+
+void pbft::do_prepare(pbft_operation &op) {
+    LOG(debug) << "Doing prepare for operation " << op.debug_string();
 
 }
 
@@ -124,7 +164,7 @@ pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_
 }
 
 bzn::message
-pbft::wrap_message(pbft_msg &msg) {
+pbft::wrap_message(const pbft_msg &msg) {
     bzn::message json;
     json["bzn-api"] = "pbft";
     json["pbft-data"] = msg.SerializeAsString();

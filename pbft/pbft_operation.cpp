@@ -13,6 +13,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "pbft_operation.hpp"
+#include <boost/format.hpp>
 
 using namespace bzn;
 
@@ -42,4 +43,8 @@ bool pbft_operation::has_preprepare() {
 
 operation_key_t pbft_operation::get_operation_key() {
     return std::tuple<uint64_t, uint64_t, pbft_request>(this->view, this->sequence, this->request);
+}
+
+std::string pbft_operation::debug_string() {
+    return str(boost::format("(v%1%, s%2%) - %3%") % this->view % this->sequence % this->request.ShortDebugString());
 }

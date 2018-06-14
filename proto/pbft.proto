@@ -3,19 +3,18 @@ syntax = "proto3";
 message pbft_msg
 {
     // These will be present on every type of message other than requests
-    uint64 sequence = 1;
-    uint64 view = 2;
-
-    oneof msg {
-        pbft_request request = 3;
-        pbft_preprepare preprepare = 4;
-    }
-
+    uint64 view = 1;
+    uint64 sequence = 2;
+    pbft_request request = 3;
+    pbft_msg_type type = 4;
 }
 
-message pbft_preprepare
-{
-    pbft_request request = 3;
+enum pbft_msg_type {
+    PBFT_MSG_TYPE_PUNDEFINED = 0;
+    PBFT_MSG_TYPE_REQUEST = 1;
+    PBFT_MSG_TYPE_PREPREPARE = 2;
+    PBFT_MSG_TYPE_PREPARE = 3;
+    PBFT_MSG_TYPE_COMMIT = 4;
 }
 
 message pbft_request

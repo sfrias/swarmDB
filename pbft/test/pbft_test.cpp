@@ -36,6 +36,7 @@ namespace {
     class pbft_test : public Test {
     public:
         pbft_msg request_msg;
+        pbft_msg preprepare_msg;
 
         std::shared_ptr<bzn::Mocknode_base> mock_node;
         bzn::pbft pbft;
@@ -47,6 +48,12 @@ namespace {
             request_msg.mutable_request()->set_operation("do some stuff");
             request_msg.mutable_request()->set_client("bob");
             request_msg.mutable_request()->set_timestamp(1);
+            request_msg.set_type(PBFT_MSG_TYPE_REQUEST);
+
+            preprepare_msg = pbft_msg(request_msg);
+            preprepare_msg.set_type(PBFT_MSG_TYPE_PREPREPARE);
+            preprepare_msg.set_sequence(19);
+            preprepare_msg.set_view(4);
         }
     };
 
@@ -65,7 +72,7 @@ namespace {
     bool is_preprepare(std::shared_ptr<bzn::message> json){
         pbft_msg msg = extract_pbft_msg(json);
 
-        return msg.has_preprepare() && msg.view() > 0 && msg.sequence() > 0;
+        return msg.type() == PBFT_MSG_TYPE_PREPREPARE && msg.view() > 0 && msg.sequence() > 0;
     }
 
     TEST_F(pbft_test, test_requests_fire_preprepare) {
@@ -92,4 +99,17 @@ namespace {
         pbft.handle_message(request_msg2);
         ASSERT_EQ(seen_sequences.size(), 2u);
     }
+
+    //bool is_prepare(std::shared_ptr<bzn::message> json){
+    //    pbft_msg msg = extract_pbft_msg(json);
+
+    //    return msg.type() == PBFT_MSG_TYPE_PREPARE && msg.view() > 0 && msg.sequence() > 0;
+    //}
+
+    //bool prepare_matches_preprepare(std::shared_ptr<bzn::message> /*prepare*/, std::shared_ptr<bzn::message> /*preprepare*/) {
+    //    return true;
+    //}
+
+    //TEST_F(pbft_Test, test_preprepare_triggers_prepare) {
+
 }
