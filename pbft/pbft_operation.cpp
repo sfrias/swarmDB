@@ -41,7 +41,7 @@ void pbft_operation::record_preprepare() {
 }
 
 bool pbft_operation::has_preprepare() {
-    return false;
+    return this->preprepare_seen;
 }
 
 void pbft_operation::record_prepare(const pbft_msg& prepare) {

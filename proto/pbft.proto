@@ -7,6 +7,7 @@ message pbft_msg
     // These three will be present on every type of message other than requests, and identify the client request in question
     uint64 view = 2;
     uint64 sequence = 3;
+    // TODO: Most messages should contain only the hash of the request - KEP-344
     pbft_request request = 4;
 
     // For prepare, commit, etc messages where the recipient needs to count the senders. This is the sender's uuid.
