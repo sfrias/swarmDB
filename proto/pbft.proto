@@ -2,11 +2,15 @@ syntax = "proto3";
 
 message pbft_msg
 {
-    // These will be present on every type of message other than requests
-    uint64 view = 1;
-    uint64 sequence = 2;
-    pbft_request request = 3;
-    pbft_msg_type type = 4;
+    pbft_msg_type type = 1;
+
+    // These three will be present on every type of message other than requests, and identify the client request in question
+    uint64 view = 2;
+    uint64 sequence = 3;
+    pbft_request request = 4;
+
+    // For prepare, commit, etc messages where the recipient needs to count the senders. This is the sender's uuid.
+    string sender = 5;
 }
 
 enum pbft_msg_type {

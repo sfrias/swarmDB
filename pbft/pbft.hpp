@@ -23,7 +23,8 @@ namespace bzn {
     public:
         pbft(
                 std::shared_ptr<bzn::node_base> node,
-                const bzn::peers_list_t &peers
+                const bzn::peers_list_t& peers,
+                const bzn::uuid_t& uuid
         );
 
         void start() override;
@@ -34,7 +35,9 @@ namespace bzn {
 
         bool is_primary() const override;
 
-        const peer_address_t &get_primary() const override;
+        const peer_address_t& get_primary() const override;
+
+        const bzn::uuid_t& get_uuid();
 
     private:
         // Using 1 as first value here to distinguish from default value of 0 in protobuf
@@ -46,14 +49,19 @@ namespace bzn {
 
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
+        const bzn::uuid_t uuid;
 
         std::map<bzn::operation_key_t, bzn::pbft_operation, bzn::operation_key_comparator> operations;
         std::map<bzn::log_key_t, bzn::operation_key_t> accepted_preprepares;
 
-        pbft_operation & find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request);
+        pbft_operation& find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request);
+        pbft_operation& find_operation(const pbft_msg& msg);
+
+        bool preliminary_filter_msg(const pbft_msg& msg);
 
         void handle_request(const pbft_msg& msg);
         void handle_preprepare(const pbft_msg& msg);
+        void handle_prepare(const pbft_msg& msg);
 
         void do_preprepare(pbft_operation& op);
         void do_prepare(pbft_operation& op);

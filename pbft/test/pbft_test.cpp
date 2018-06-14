@@ -43,7 +43,7 @@ namespace {
 
         pbft_test()
                 : mock_node(std::make_shared<bzn::Mocknode_base>())
-                , pbft(mock_node, TEST_PEER_LIST)
+                , pbft(mock_node, TEST_PEER_LIST, TEST_NODE_UUID)
         {
             request_msg.mutable_request()->set_operation("do some stuff");
             request_msg.mutable_request()->set_client("bob");
@@ -106,15 +106,23 @@ namespace {
         return msg.type() == PBFT_MSG_TYPE_PREPARE && msg.view() > 0 && msg.sequence() > 0;
     }
 
-    //bool prepare_matches_preprepare(std::shared_ptr<bzn::message> /*prepare*/, std::shared_ptr<bzn::message> /*preprepare*/) {
-    //    return true;
-    //}
-
     TEST_F(pbft_test, test_preprepare_triggers_prepare) {
         EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_prepare, Eq(true))))
                 .Times(Exactly(TEST_PEER_LIST.size()));
 
         this->pbft.handle_message(this->preprepare_msg);
+    }
+
+    TEST_F(pbft_test, test_prepare_contains_uuid) {
+        std::shared_ptr<bzn::message> json;
+        EXPECT_CALL(*mock_node, send_message(_, _)).WillRepeatedly(SaveArg<1>(&json));
+
+        this->pbft.handle_message(this->preprepare_msg);
+
+        pbft_msg msg_sent = extract_pbft_msg(json);
+
+        ASSERT_EQ(msg_sent.sender(), this->pbft.get_uuid());
+        ASSERT_EQ(msg_sent.sender(), TEST_NODE_UUID);
     }
 
     TEST_F(pbft_test, test_wrong_view_preprepare_rejected) {
@@ -141,7 +149,7 @@ namespace {
         this->pbft.handle_message(prepreparea);
         this->pbft.handle_message(preprepareb);
         this->pbft.handle_message(prepreparec);
-        this->pbft.handle_message(prepreparea);
+        this->pbft.handle_message(preprepared);
     }
 
 }

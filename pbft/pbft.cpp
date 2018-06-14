@@ -19,8 +19,8 @@
 
 using namespace bzn;
 
-pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers)
-        : node(std::move(node)), peers(peers) {
+pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers, const bzn::uuid_t& uuid)
+        : node(std::move(node)), peers(peers), uuid(uuid) {
     if (this->peers.empty()) {
         throw std::runtime_error("No peers found!");
     }
@@ -35,11 +35,11 @@ pbft::start() {
 void
 pbft::handle_message(const pbft_msg &msg) {
 
-    LOG(debug) << "Recieved message:\n" << msg.DebugString();
+    LOG(debug) << "Recieved message: " << msg.ShortDebugString();
 
-    //TODO: conditionally discard based on timestamp - KEP-328
-
-    //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
+    if(! this->preliminary_filter_msg(msg)) {
+        return;
+    }
 
     //TODO: pbft says messages (other than requests) should always have view/seq numbers, but byzantine clients
     // can fail to include them. Therefore, we need to validate each message - KEP-375
@@ -54,9 +54,34 @@ pbft::handle_message(const pbft_msg &msg) {
         case PBFT_MSG_TYPE_PREPREPARE :
             this->handle_preprepare(msg);
             break;
+        case PBFT_MSG_TYPE_PREPARE :
+            this->handle_prepare(msg);
+            break;
         default :
             throw "Unsupported message type";
     }
+}
+
+bool pbft::preliminary_filter_msg(const pbft_msg& msg){
+    auto t = msg.type();
+    if(t == PBFT_MSG_TYPE_PREPREPARE || t == PBFT_MSG_TYPE_PREPARE || t == PBFT_MSG_TYPE_COMMIT) {
+        if(msg.view() != this->view) {
+            LOG(debug) << "Dropping message because it has the wrong view number";
+            return false;
+        }
+
+        if(msg.sequence() < this->low_water_mark) {
+            LOG(debug) << "Dropping message becasue it has an unreasonable sequence number";
+            return false;
+        }
+
+        if(msg.sequence() > this->high_water_mark) {
+            LOG(debug) << "Dropping message becasue it has an unreasonable sequence number";
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void pbft::handle_request(const pbft_msg& msg) {
@@ -66,6 +91,11 @@ void pbft::handle_request(const pbft_msg& msg) {
         return;
     }
 
+    //TODO: conditionally discard based on timestamp - KEP-328
+
+    //TODO: keep track of what requests we've seen based on timestamp and only send preprepares once - KEP-329
+
+
     uint64_t request_view = this->view;
     uint64_t request_seq = this->next_issued_sequence_number++;
     pbft_operation &op = this->find_operation(request_view, request_seq, msg.request());
@@ -74,19 +104,15 @@ void pbft::handle_request(const pbft_msg& msg) {
 }
 
 void pbft::handle_preprepare(const pbft_msg& msg) {
-    uint64_t request_view = msg.view();
-    uint64_t request_sequence = msg.sequence();
-    log_key_t log_key(request_view, request_sequence);
 
-    pbft_operation& op = this->find_operation(request_view, request_sequence, msg.request());
-
-    if (request_view != this->view) {
-        LOG(debug) << "Rejecting preprepare because its view " << request_view << " does not match my view " << this->view << "\n";
+    if (msg.view() != this->view) {
+        LOG(debug) << "Rejecting preprepare because its view " << msg.view() << " does not match my view " << this->view << "\n";
         return;
     }
 
-    // If we've already accepted a preprepare for this view+sequence, and it's not this one
+    // If we've already accepted a preprepare for this view+sequence, and it's not this one, then we should reject this one
     // Note that if we get the same preprepare more than once, we can still accept it
+    log_key_t log_key(msg.view(), msg.sequence());
     auto lookup = this->accepted_preprepares.find(log_key);
     if (lookup != this->accepted_preprepares.end()
         && std::get<2>(lookup->second).SerializeAsString() != msg.request().SerializeAsString()) {
@@ -95,18 +121,25 @@ void pbft::handle_preprepare(const pbft_msg& msg) {
         return;
     }
 
-    if (request_sequence < this->low_water_mark || request_sequence > this->high_water_mark) {
-        LOG(debug) << "Rejecting preprepare because its sequence number " << request_sequence << " is unreasonable \n";
+    if (msg.sequence() < this->low_water_mark || msg.sequence() > this->high_water_mark) {
+        LOG(debug) << "Rejecting preprepare because its sequence number " << msg.sequence() << " is unreasonable \n";
         return;
     }
 
     // At this point we've decided to accept the preprepare
 
-    if (lookup != this->accepted_preprepares.end()) {
-        accepted_preprepares[log_key] = operation_key_t(request_view, request_sequence, msg.request());
-    }
+    pbft_operation& op = this->find_operation(msg);
+    op.record_preprepare();
+
+    // This assignment will be redundant if we've seen this preprepare before, but that's fine
+    accepted_preprepares[log_key] = op.get_operation_key();
 
     this->do_prepare(op);
+}
+
+void pbft::handle_prepare(const pbft_msg& msg) {
+    msg.sequence();
+
 }
 
 void pbft::broadcast(const pbft_msg& msg) {
@@ -132,6 +165,16 @@ void pbft::do_preprepare(pbft_operation &op) {
 void pbft::do_prepare(pbft_operation &op) {
     LOG(debug) << "Doing prepare for operation " << op.debug_string();
 
+    pbft_msg msg;
+
+    msg.set_type(PBFT_MSG_TYPE_PREPARE);
+    msg.set_view(op.view);
+    msg.set_sequence(op.sequence);
+    msg.set_allocated_request(new pbft_request(op.request));
+    msg.set_sender(this->uuid);
+
+    this->broadcast(msg);
+
 }
 
 size_t
@@ -148,7 +191,11 @@ const peer_address_t &
 pbft::get_primary() const {
     throw "not implemented";
 }
+
 // Find this node's record of an operation (creating it if this is the first time we've heard of it)
+pbft_operation& pbft::find_operation(const pbft_msg& msg){
+    return this->find_operation(msg.view(), msg.sequence(), msg.request());
+}
 
 pbft_operation &
 pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_request &request) {
@@ -170,4 +217,8 @@ pbft::wrap_message(const pbft_msg &msg) {
     json["pbft-data"] = msg.SerializeAsString();
 
     return json;
+}
+
+const bzn::uuid_t& pbft::get_uuid() {
+    return this->uuid;
 }
