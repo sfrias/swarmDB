@@ -1,0 +1,5 @@
+set -x
+mkdir -p build
+cd build
+
+../localcmake/bin/cmake -DBOOST_ROOT:PATHNAME="localboost/1_67_0/" .. && make -j 14

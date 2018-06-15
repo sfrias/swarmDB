@@ -191,7 +191,7 @@ main(int argc, const char* argv[])
 
         auto node = std::make_shared<bzn::node>(io_context, websocket, options.get_ws_idle_timeout(), boost::asio::ip::tcp::endpoint{options.get_listener()});
         bzn::pbft_service pbft_service;
-        bzn::pbft pbft(node, init_peers.get_peers(), options.get_uuid(), pbft_service);
+        auto pbft = std::make_shared<bzn::pbft>(node, init_peers.get_peers(), options.get_uuid(), pbft_service);
 
         // todo: just for testing...
         node->register_for_message("ping",
@@ -206,7 +206,7 @@ main(int argc, const char* argv[])
                 session->send_message(reply, false);
             });
 
-        pbft.start();
+        pbft->start();
 
         print_banner(options, eth_balance);
 
