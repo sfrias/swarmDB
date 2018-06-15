@@ -12,7 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "pbft_service.hpp"
+#include "pbft/pbft_service.hpp"
+
+using namespace bzn;
 
 void pbft_service::commit_request(uint64_t sequence, const pbft_request &request) {
     waiting_requests[sequence] = request;

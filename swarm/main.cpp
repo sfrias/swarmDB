@@ -13,12 +13,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <bootstrap/bootstrap_peers.hpp>
-#include <crud/crud.hpp>
 #include <ethereum/ethereum.hpp>
 #include <node/node.hpp>
 #include <options/options.hpp>
-#include <raft/raft.hpp>
-#include <storage/storage.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
@@ -26,6 +23,8 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <thread>
+#include <pbft/pbft_service.hpp>
+#include <pbft/pbft.hpp>
 
 
 void
@@ -191,12 +190,9 @@ main(int argc, const char* argv[])
         auto websocket = std::make_shared<bzn::beast::websocket>();
 
         auto node = std::make_shared<bzn::node>(io_context, websocket, options.get_ws_idle_timeout(), boost::asio::ip::tcp::endpoint{options.get_listener()});
-        auto raft = std::make_shared<bzn::raft>(io_context, node, init_peers.get_peers(), options.get_uuid());
-        auto storage = std::make_shared<bzn::storage>();
-        auto crud = std::make_shared<bzn::crud>(node, raft, storage);
-        
-        raft->initialize_storage_from_log(storage);
-        
+        bzn::pbft_service pbft_service;
+        bzn::pbft pbft(node, init_peers.get_peers(), options.get_uuid(), pbft_service);
+
         // todo: just for testing...
         node->register_for_message("ping",
             [](const bzn::message& msg, std::shared_ptr<bzn::session_base> session)
@@ -210,9 +206,7 @@ main(int argc, const char* argv[])
                 session->send_message(reply, false);
             });
 
-        node->start();
-        crud->start();
-        raft->start();
+        pbft.start();
 
         print_banner(options, eth_balance);
 

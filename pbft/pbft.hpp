@@ -20,7 +20,7 @@
 
 namespace bzn {
 
-    class pbft final : public bzn::pbft_base {
+    class pbft final : public bzn::pbft_base, public std::enable_shared_from_this<pbft>{
     public:
         pbft(
                 std::shared_ptr<bzn::node_base> node,
@@ -74,6 +74,7 @@ namespace bzn {
         void do_commit(pbft_operation& op);
         void do_committed(pbft_operation& op);
 
+        void unwrap_message(const bzn::message& json, std::shared_ptr<bzn::session_base> session);
         bzn::message wrap_message(const pbft_msg& message);
         pbft_msg common_message_setup(const pbft_operation& op);
         void broadcast(const pbft_msg& message);

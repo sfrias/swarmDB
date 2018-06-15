@@ -39,7 +39,7 @@ namespace {
     public:
         pbft_msg request_msg;
         pbft_msg preprepare_msg;
-        pbft_service service;
+        bzn::pbft_service service;
 
         std::shared_ptr<bzn::Mocknode_base> mock_node;
         bzn::pbft pbft;

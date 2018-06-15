@@ -17,11 +17,13 @@
 #include <include/bluzelle.hpp>
 #include <proto/bluzelle.pb.h>
 
-class pbft_service_base {
-public:
+namespace bzn {
 
-    virtual void commit_request(uint64_t sequence, const pbft_request& request) = 0;
+    class pbft_service_base {
+    public:
 
-};
+        virtual void commit_request(uint64_t sequence, const pbft_request &request) = 0;
 
+    };
 
+}

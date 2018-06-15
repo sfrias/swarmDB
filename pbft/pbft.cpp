@@ -32,7 +32,15 @@ pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers,
 
 void
 pbft::start() {
+    this->node->register_for_message("pbft", std::bind(&pbft::unwrap_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
+}
 
+void
+pbft::unwrap_message(const bzn::message& json, std::shared_ptr<bzn::session_base> /*session*/) {
+    pbft_msg msg;
+    msg.ParseFromString(json["pbft-data"].asString());
+
+    this->handle_message(msg);
 }
 
 void
