@@ -16,6 +16,7 @@
 
 #include <include/bluzelle.hpp>
 #include <pbft/pbft_base.hpp>
+#include <pbft/pbft_service_base.hpp>
 
 namespace bzn {
 
@@ -24,7 +25,8 @@ namespace bzn {
         pbft(
                 std::shared_ptr<bzn::node_base> node,
                 const bzn::peers_list_t& peers,
-                const bzn::uuid_t& uuid
+                const bzn::uuid_t& uuid,
+                pbft_service_base& service
         );
 
         void start() override;
@@ -39,6 +41,7 @@ namespace bzn {
 
         const bzn::uuid_t& get_uuid();
 
+
     private:
         // Using 1 as first value here to distinguish from default value of 0 in protobuf
         uint64_t view = 1;
@@ -50,6 +53,7 @@ namespace bzn {
         std::shared_ptr<bzn::node_base> node;
         const bzn::peers_list_t peers;
         const bzn::uuid_t uuid;
+        pbft_service_base& service;
 
         std::map<bzn::operation_key_t, bzn::pbft_operation, bzn::operation_key_comparator> operations;
         std::map<bzn::log_key_t, bzn::operation_key_t> accepted_preprepares;

@@ -16,6 +16,7 @@
 #include <pbft/pbft_operation.hpp>
 #include <pbft/pbft_base.hpp>
 #include <pbft/pbft.hpp>
+#include <pbft/pbft_service.hpp>
 #include <bootstrap/bootstrap_peers.hpp>
 #include <mocks/mock_node_base.hpp>
 #include <proto/bluzelle.pb.h>
@@ -38,13 +39,14 @@ namespace {
     public:
         pbft_msg request_msg;
         pbft_msg preprepare_msg;
+        pbft_service service;
 
         std::shared_ptr<bzn::Mocknode_base> mock_node;
         bzn::pbft pbft;
 
         pbft_test()
                 : mock_node(std::make_shared<bzn::Mocknode_base>())
-                , pbft(mock_node, TEST_PEER_LIST, TEST_NODE_UUID)
+                , pbft(mock_node, TEST_PEER_LIST, TEST_NODE_UUID, service)
         {
             request_msg.mutable_request()->set_operation("do some stuff");
             request_msg.mutable_request()->set_client("bob");
@@ -172,6 +174,26 @@ namespace {
             prepare.set_sender(peer.uuid);
             this->pbft.handle_message(prepare);
         }
+    }
+
+    TEST_F(pbft_test, test_commits_applied) {
+
+        pbft_msg preprepare = pbft_msg(this->preprepare_msg);
+        preprepare.set_sequence(1);
+        this->pbft.handle_message(preprepare);
+
+        for(const auto& peer : TEST_PEER_LIST) {
+            pbft_msg prepare = pbft_msg(preprepare);
+            pbft_msg commit = pbft_msg(preprepare);
+            prepare.set_type(PBFT_MSG_TYPE_PREPARE);
+            prepare.set_sender(peer.uuid);
+            commit.set_type(PBFT_MSG_TYPE_COMMIT);
+            commit.set_sender(peer.uuid);
+            this->pbft.handle_message(prepare);
+            this->pbft.handle_message(commit);
+        }
+
+        EXPECT_EQ(this->service.applied_requests_count(), 1u);
     }
 
 }

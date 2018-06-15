@@ -19,8 +19,11 @@
 
 using namespace bzn;
 
-pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers, const bzn::uuid_t& uuid)
-        : node(std::move(node)), peers(peers), uuid(uuid) {
+pbft::pbft(std::shared_ptr<bzn::node_base> node, const bzn::peers_list_t &peers, const bzn::uuid_t& uuid, pbft_service_base& service)
+        : node(std::move(node))
+        , peers(peers)
+        , uuid(uuid)
+        , service(service){
     if (this->peers.empty()) {
         throw std::runtime_error("No peers found!");
     }
@@ -203,10 +206,10 @@ void pbft::do_commit(pbft_operation &op) {
 }
 
 void pbft::do_committed(pbft_operation &op) {
-    LOG(debug) << "Operation " << op.debug_string() << " is committed and elligible for execution";
+    LOG(debug) << "Operation " << op.debug_string() << " is committed";
     op.end_commit_phase();
 
-    // TODO: Put the operation somewhere to represent it being "committed" - KEP-379
+    this->service.commit_request(op.sequence, op.request);
 }
 
 size_t
