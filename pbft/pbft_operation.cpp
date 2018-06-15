@@ -53,12 +53,29 @@ bool pbft_operation::is_prepared() {
     return this->has_preprepare() && this->prepares_seen.size() >= (2*f + 1);
 }
 
+void pbft_operation::record_commit(const pbft_msg& commit) {
+    this->commits_seen.insert(commit.sender());
+}
+
+bool pbft_operation::is_committed() {
+    size_t f = (this->peers.size() - 1) / 3;
+    return this->is_prepared() && this->commits_seen.size() >= (2*f + 1);
+}
+
 void pbft_operation::begin_commit_phase() {
     if(!this->is_prepared() || this->state != pbft_operation_state::prepare) {
         throw "Illegaly tried to move to commit phase";
     }
 
     this->state = pbft_operation_state::commit;
+}
+
+void pbft_operation::end_commit_phase() {
+    if(!this->is_committed() || this->state != pbft_operation_state::commit) {
+        throw "Illegally tried to end the commit phase";
+    }
+
+    this->state = pbft_operation_state::committed;
 }
 
 operation_key_t pbft_operation::get_operation_key() {

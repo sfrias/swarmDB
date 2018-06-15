@@ -51,7 +51,11 @@ namespace bzn {
         void record_prepare(const pbft_msg& prepare);
         bool is_prepared();
 
+        void record_commit(const pbft_msg& commit);
+        bool is_committed();
+
         void begin_commit_phase();
+        void end_commit_phase();
 
         const uint64_t view;
         const uint64_t sequence;
@@ -66,6 +70,7 @@ namespace bzn {
 
         bool preprepare_seen = false;
         std::set<bzn::uuid_t> prepares_seen;
+        std::set<bzn::uuid_t> commits_seen;
 
 
     };

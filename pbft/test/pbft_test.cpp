@@ -153,4 +153,25 @@ namespace {
         this->pbft.handle_message(preprepared);
     }
 
+    bool is_commit(std::shared_ptr<bzn::message> json){
+        pbft_msg msg = extract_pbft_msg(json);
+
+        return msg.type() == PBFT_MSG_TYPE_COMMIT && msg.view() > 0 && msg.sequence() > 0;
+    }
+
+    TEST_F(pbft_test, test_commit_messages_sent) {
+        EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_prepare, Eq(true))))
+                .Times(Exactly(TEST_PEER_LIST.size()));
+        EXPECT_CALL(*mock_node, send_message(_, ResultOf(is_commit, Eq(true))))
+                .Times(Exactly(TEST_PEER_LIST.size()));
+
+        this->pbft.handle_message(this->preprepare_msg);
+        for(const auto& peer : TEST_PEER_LIST) {
+            pbft_msg prepare = pbft_msg(this->preprepare_msg);
+            prepare.set_type(PBFT_MSG_TYPE_PREPARE);
+            prepare.set_sender(peer.uuid);
+            this->pbft.handle_message(prepare);
+        }
+    }
+
 }

@@ -51,6 +51,9 @@ pbft::handle_message(const pbft_msg &msg) {
         case PBFT_MSG_TYPE_PREPARE :
             this->handle_prepare(msg);
             break;
+        case PBFT_MSG_TYPE_COMMIT :
+            this->handle_commit(msg);
+            break;
         default :
             throw "Unsupported message type";
     }
@@ -125,10 +128,19 @@ void pbft::handle_preprepare(const pbft_msg& msg) {
 
 void pbft::handle_prepare(const pbft_msg& msg) {
 
-    // Prepare messages are never rejected, assumping the sanity checks passed
+    // Prepare messages are never rejected, assuming the sanity checks passed
     pbft_operation &op = this->find_operation(msg);
 
     op.record_prepare(msg);
+    this->maybe_advance_operation_state(op);
+}
+
+void pbft::handle_commit(const pbft_msg& msg) {
+
+    // Commit messages are never rejected, assuming  the sanity checks passed
+    pbft_operation &op = this->find_operation(msg);
+
+    op.record_commit(msg);
     this->maybe_advance_operation_state(op);
 }
 
@@ -143,19 +155,30 @@ void pbft::broadcast(const pbft_msg& msg) {
 void pbft::maybe_advance_operation_state(pbft_operation& op){
     if(op.get_state() == pbft_operation_state::prepare && op.is_prepared()) {
         this->do_commit(op);
-        op.begin_commit_phase();
+    }
+
+    if(op.get_state() == pbft_operation_state::commit && op.is_committed()) {
+        this->do_committed(op);
     }
 }
 
-
-void pbft::do_preprepare(pbft_operation &op) {
-    LOG(debug) << "Doing preprepare for operation " << op.debug_string();
+pbft_msg pbft::common_message_setup(const pbft_operation& op){
     pbft_msg msg;
-
-    msg.set_type(PBFT_MSG_TYPE_PREPREPARE);
     msg.set_view(op.view);
     msg.set_sequence(op.sequence);
     msg.set_allocated_request(new pbft_request(op.request));
+
+    // Some message types don't need this, but it's cleaner to always include it
+    msg.set_sender(this->uuid);
+
+    return msg;
+}
+
+void pbft::do_preprepare(pbft_operation &op) {
+    LOG(debug) << "Doing preprepare for operation " << op.debug_string();
+
+    pbft_msg msg = this->common_message_setup(op);
+    msg.set_type(PBFT_MSG_TYPE_PREPREPARE);
 
     this->broadcast(msg);
 }
@@ -163,19 +186,27 @@ void pbft::do_preprepare(pbft_operation &op) {
 void pbft::do_prepare(pbft_operation &op) {
     LOG(debug) << "Doing prepare for operation " << op.debug_string();
 
-    pbft_msg msg;
-
+    pbft_msg msg = this->common_message_setup(op);
     msg.set_type(PBFT_MSG_TYPE_PREPARE);
-    msg.set_view(op.view);
-    msg.set_sequence(op.sequence);
-    msg.set_allocated_request(new pbft_request(op.request));
-    msg.set_sender(this->uuid);
 
     this->broadcast(msg);
 }
 
 void pbft::do_commit(pbft_operation &op) {
     LOG(debug) << "Doing commit for operation " << op.debug_string();
+    op.begin_commit_phase();
+
+    pbft_msg msg = this->common_message_setup(op);
+    msg.set_type(PBFT_MSG_TYPE_COMMIT);
+
+    this->broadcast(msg);
+}
+
+void pbft::do_committed(pbft_operation &op) {
+    LOG(debug) << "Operation " << op.debug_string() << " is committed and elligible for execution";
+    op.end_commit_phase();
+
+    // TODO: Put the operation somewhere to represent it being "committed" - KEP-379
 }
 
 size_t

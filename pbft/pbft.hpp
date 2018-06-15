@@ -62,13 +62,16 @@ namespace bzn {
         void handle_request(const pbft_msg& msg);
         void handle_preprepare(const pbft_msg& msg);
         void handle_prepare(const pbft_msg& msg);
+        void handle_commit(const pbft_msg& msg);
 
         void maybe_advance_operation_state(pbft_operation& op);
         void do_preprepare(pbft_operation& op);
         void do_prepare(pbft_operation& op);
         void do_commit(pbft_operation& op);
+        void do_committed(pbft_operation& op);
 
         bzn::message wrap_message(const pbft_msg& message);
+        pbft_msg common_message_setup(const pbft_operation& op);
         void broadcast(const pbft_msg& message);
 
     };
