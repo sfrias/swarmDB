@@ -5,6 +5,6 @@
   "ethereum_io_api_token" : "**********************************",
   "bootstrap_file" : "dev-utils/peers.json",
   "uuid" : "uuid3",
-  "debug_logging" : true,
+  "debug_logging" : false,
   "log_to_stdout" : true
 }
