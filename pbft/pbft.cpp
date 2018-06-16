@@ -14,6 +14,7 @@
 
 #include <pbft/pbft.hpp>
 #include <utils/make_endpoint.hpp>
+#include <google/protobuf/text_format.h>
 #include <cstdint>
 #include <memory>
 
@@ -38,7 +39,7 @@ pbft::start() {
 void
 pbft::unwrap_message(const bzn::message& json, std::shared_ptr<bzn::session_base> /*session*/) {
     pbft_msg msg;
-    msg.ParseFromString(json["pbft-data"].asString());
+    google::protobuf::TextFormat::ParseFromString(json["pbft-data"].asString(), &msg); // TODO - KEP 382
 
     this->handle_message(msg);
 }
@@ -256,8 +257,11 @@ pbft::find_operation(const uint64_t &view, const uint64_t &sequence, const pbft_
 bzn::message
 pbft::wrap_message(const pbft_msg &msg) {
     bzn::message json;
+    std::string serialized;
+    google::protobuf::TextFormat::PrintToString(msg, &serialized); // TODO - KEP 382
+
     json["bzn-api"] = "pbft";
-    json["pbft-data"] = msg.SerializeAsString();
+    json["pbft-data"] = serialized;
 
     return json;
 }

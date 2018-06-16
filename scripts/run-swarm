@@ -1,0 +1,4 @@
+mate-terminal -x bash -c "./build/output/swarm -c ./dev-utils/configs/1.json; bash" &
+mate-terminal -x bash -c "./build/output/swarm -c ./dev-utils/configs/2.json; bash" &
+mate-terminal -x bash -c "./build/output/swarm -c ./dev-utils/configs/3.json; bash" &
+mate-terminal -x bash -c "./build/output/swarm -c ./dev-utils/configs/4.json; bash" &

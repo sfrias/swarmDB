@@ -22,6 +22,7 @@
 #include <proto/bluzelle.pb.h>
 #include <json/json.h>
 #include <set>
+#include <google/protobuf/text_format.h>
 
 using namespace ::testing;
 
@@ -62,7 +63,7 @@ namespace {
 
     pbft_msg extract_pbft_msg(std::shared_ptr<bzn::message> json) {
         pbft_msg result;
-        result.ParseFromString((*json)["pbft-data"].asString());
+        google::protobuf::TextFormat::ParseFromString((*json)["pbft-data"].asString(), &result);
         return result;
     }
 
