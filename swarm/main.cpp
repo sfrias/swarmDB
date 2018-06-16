@@ -206,6 +206,7 @@ main(int argc, const char* argv[])
                 session->send_message(reply, false);
             });
 
+        node->start();
         pbft->start();
 
         print_banner(options, eth_balance);

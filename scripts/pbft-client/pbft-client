@@ -1,0 +1,5 @@
+set -x
+
+protoc -I=proto/ --python_out=scripts/pbft-client proto/*.proto
+python3 scripts/pbft-client/main.py
+
