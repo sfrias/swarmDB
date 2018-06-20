@@ -216,7 +216,7 @@ main(int argc, const char* argv[])
 
         // get our http listener port...
         uint16_t http_port;
-        if (!get_http_listener_port(options, init_peers, http_port))
+        if (!get_http_listener_port(options, peers, http_port))
         {
             LOG(error) << "could not find our http port setting!";
             return 0;
