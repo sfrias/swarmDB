@@ -29,9 +29,9 @@ namespace
 {
     const bzn::uuid_t TEST_NODE_UUID{"f0645cc2-476b-485d-b589-217be3ca87d5"};
 
-    const bzn::peers_list_t TEST_PEER_LIST{{"127.0.0.1", 8081, "name1", "uuid1"},
-                                           {"127.0.0.1", 8082, "name2", "uuid2"},
-                                           {"127.0.0.1", 8084, "name3", TEST_NODE_UUID}};
+    const bzn::peers_list_t TEST_PEER_LIST{{"127.0.0.1", 8081, 80, "name1", "uuid1"},
+                                           {"127.0.0.1", 8082, 81, "name2", "uuid2"},
+                                           {"127.0.0.1", 8084, 82, "name3", TEST_NODE_UUID}};
 
     const std::string RAFT_TIMEOUT_SCALE = "RAFT_TIMEOUT_SCALE";
 
@@ -847,17 +847,95 @@ namespace bzn
 
     TEST_F(raft_test, test_that_raft_first_log_entry_is_the_quorum)
     {
-        bzn::message expected;
+        clean_state_folder();
         auto raft = bzn::raft(std::make_shared<NiceMock<bzn::asio::Mockio_context_base>>(), nullptr, TEST_PEER_LIST, TEST_NODE_UUID);
-        EXPECT_EQ(raft.log_entries.size(), static_cast<size_t>(1));
-        EXPECT_EQ(raft.log_entries.front().entry_type, bzn::log_entry_type::single_quorum);
-        bzn::message msg = raft.log_entries.front().msg;
 
-        for (const auto& p : msg)
-        {
-            bzn::peer_address_t peer_address(p["host"].asString(), (uint16_t)p["port"].asUInt(), p["name"].asString(), p["uuid"].asString());
-            EXPECT_TRUE(TEST_PEER_LIST.find(peer_address) != TEST_PEER_LIST.end());
-        }
+        bzn::message msg;
+
+        msg["data"] = "data";
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::single_quorum, 1, 1, msg});
+
+        auto quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::single_quorum);
+        EXPECT_EQ((uint32_t)1, quorum.log_index);
+        EXPECT_EQ((uint32_t)1, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 2, 2, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 3, 3, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 4, 5, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 5, 8, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::single_quorum);
+        EXPECT_EQ((uint32_t)1, quorum.log_index);
+        EXPECT_EQ((uint32_t)1, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::joint_quorum, 6, 13, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 7, 21, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 8, 34, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 9, 55, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::joint_quorum);
+        EXPECT_EQ((uint32_t)6, quorum.log_index);
+        EXPECT_EQ((uint32_t)13, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::joint_quorum, 10, 89, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::joint_quorum);
+        EXPECT_EQ((uint32_t)10, quorum.log_index);
+        EXPECT_EQ((uint32_t)89, quorum.term);
+
+        clean_state_folder();
+    }
+
+
+    TEST_F(raft_test, test_that_raft_first_log_entry_is_the_quorum)
+    {
+        clean_state_folder();
+        auto raft = bzn::raft(std::make_shared<NiceMock<bzn::asio::Mockio_context_base>>(), nullptr, TEST_PEER_LIST, TEST_NODE_UUID);
+
+        bzn::message msg;
+
+        msg["data"] = "data";
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::single_quorum, 1, 1, msg});
+
+        auto quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::single_quorum);
+        EXPECT_EQ((uint32_t)1, quorum.log_index);
+        EXPECT_EQ((uint32_t)1, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 2, 2, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 3, 3, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 4, 5, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 5, 8, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::single_quorum);
+        EXPECT_EQ((uint32_t)1, quorum.log_index);
+        EXPECT_EQ((uint32_t)1, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::joint_quorum, 6, 13, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 7, 21, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 8, 34, msg});
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::log_entry, 9, 55, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::joint_quorum);
+        EXPECT_EQ((uint32_t)6, quorum.log_index);
+        EXPECT_EQ((uint32_t)13, quorum.term);
+
+        raft.log_entries.emplace_back(log_entry{bzn::log_entry_type::joint_quorum, 10, 89, msg});
+
+        quorum = raft.last_quorum();
+        EXPECT_EQ(quorum.entry_type, bzn::log_entry_type::joint_quorum);
+        EXPECT_EQ((uint32_t)10, quorum.log_index);
+        EXPECT_EQ((uint32_t)89, quorum.term);
+
+        clean_state_folder();
     }
 
 
