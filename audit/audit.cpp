@@ -14,6 +14,7 @@
 
 #include <audit/audit.hpp>
 #include <boost/beast/core/detail/base64.hpp>
+#include <boost/asio/ip/udp.hpp>
 #include <boost/format.hpp>
 
 using namespace bzn;
@@ -23,6 +24,7 @@ audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context
         , std::optional<boost::asio::ip::udp::endpoint> monitor_endpoint)
 
         : node(node)
+        , io_context(io_context)
         , leader_alive_timer(io_context->make_unique_steady_timer())
         , leader_progress_timer(io_context->make_unique_steady_timer())
         , monitor_endpoint(monitor_endpoint)
@@ -53,6 +55,9 @@ audit::start()
                                                             , std::placeholders::_2));
         LOG(info) << "Audit module running";
         this->reset_leader_alive_timer();
+
+        this->socket = this->io_context->make_unique_udp_socket();
+        this->socket->get_udp_socket().open(boost::asio::ip::udp::v4());
     });
 }
 
@@ -117,7 +122,23 @@ audit::report_error(const std::string& short_name, const std::string& descriptio
 {
     this->recorded_errors.push_back(description);
     LOG(fatal) << boost::format("[%1%]: %2%") % short_name % description;
-    // TODO: Push to stats.d goes here
+    this->send_to_monitor(str(boost::format("%1%:1|c") % short_name));
+}
+
+void
+audit::send_to_monitor(const std::string& stat)
+{
+    if(!this->monitor_endpoint.has_value())
+    {
+        return;
+    }
+
+    LOG(debug) << boost::format("Sending stat '%1%' to monitor at %2%:%3%")
+                  % stat
+                  % this->monitor_endpoint.value().address().to_string()
+                  % this->monitor_endpoint.value().port();
+
+    this->socket->get_udp_socket().send_to(boost::asio::buffer(stat), this->monitor_endpoint.value());
 }
 
 void

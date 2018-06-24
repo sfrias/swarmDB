@@ -52,12 +52,14 @@ namespace bzn
         void clear_leader_progress_timer();
 
         void report_error(const std::string& short_name, const std::string& error_description);
+        void send_to_monitor(const std::string& stat);
         
         void handle_leader_data(const leader_status&);
         void handle_leader_made_progress(const leader_status&);
 
         std::list<std::string> recorded_errors;
         const std::shared_ptr<bzn::node_base> node;
+        const std::shared_ptr<bzn::asio::io_context_base> io_context;
 
         uint leader_dead_count = 0;
         uint leader_stuck_count = 0;
@@ -70,7 +72,9 @@ namespace bzn
         std::unique_ptr<bzn::asio::steady_timer_base> leader_alive_timer;
         std::unique_ptr<bzn::asio::steady_timer_base> leader_progress_timer;
 
-        std::chrono::milliseconds leader_timeout{std::chrono::milliseconds(30000)};
+        std::unique_ptr<bzn::asio::udp_socket_base> socket;
+
+        std::chrono::milliseconds leader_timeout{std::chrono::milliseconds(3000)};
 
         bzn::uuid_t last_leader;
         uint64_t last_leader_commit_index;

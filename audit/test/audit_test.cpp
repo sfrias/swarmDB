@@ -14,7 +14,6 @@
 
 #include <audit/audit.hpp>
 #include <mocks/mock_node_base.hpp>
-#include <mocks/mock_node_base.hpp>
 #include <mocks/mock_boost_asio_beast.hpp>
 #include <boost/range/irange.hpp>
 
