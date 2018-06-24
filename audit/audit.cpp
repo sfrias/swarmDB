@@ -18,10 +18,14 @@
 
 using namespace bzn;
 
-audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context, std::shared_ptr<bzn::node_base> node)
+audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context
+        , std::shared_ptr<bzn::node_base> node
+        , std::optional<boost::asio::ip::udp::endpoint> monitor_endpoint)
+
         : node(node)
         , leader_alive_timer(io_context->make_unique_steady_timer())
         , leader_progress_timer(io_context->make_unique_steady_timer())
+        , monitor_endpoint(monitor_endpoint)
 {
 
 }

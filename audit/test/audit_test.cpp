@@ -66,7 +66,7 @@ public:
     {
         // We cannot construct this during our constructor because doing so invalidates our timer pointers,
         // which prevents tests from setting expectations on them
-        this->audit = std::make_shared<bzn::audit>(this->mock_io_context, this->mock_node);
+        this->audit = std::make_shared<bzn::audit>(this->mock_io_context, this->mock_node, std::nullopt);
         this->audit->start();
     }
 

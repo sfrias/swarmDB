@@ -19,6 +19,8 @@
 #include <proto/bluzelle.pb.h>
 #include <include/boost_asio_beast.hpp>
 #include <mutex>
+#include <optional>
+#include <boost/asio/ip/udp.hpp>
 
 namespace bzn
 {
@@ -26,7 +28,9 @@ namespace bzn
     class audit : public audit_base, public std::enable_shared_from_this<audit>
     {
     public:
-        audit(std::shared_ptr<bzn::asio::io_context_base>, std::shared_ptr<bzn::node_base> node);
+        audit(std::shared_ptr<bzn::asio::io_context_base>
+                , std::shared_ptr<bzn::node_base> node
+                , std::optional<boost::asio::ip::udp::endpoint>);
 
         size_t error_count() const override;
 
@@ -71,6 +75,8 @@ namespace bzn
         bzn::uuid_t last_leader;
         uint64_t last_leader_commit_index;
         bool leader_has_uncommitted_entries = false;
+
+        std::optional<boost::asio::ip::udp::endpoint> monitor_endpoint;
     };
 
 }

@@ -15,7 +15,9 @@
 #pragma once
 
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
 #include <include/bluzelle.hpp>
+#include <optional>
 #include <string>
 
 
@@ -32,6 +34,12 @@ namespace bzn
          * @return endpoint
          */
         virtual boost::asio::ip::tcp::endpoint get_listener() const = 0;
+
+       /**
+        * The address and port to send stats.d data to, if this is enabled
+        * @return optional<endpoint>
+        */
+        virtual std::optional<boost::asio::ip::udp::endpoint> get_monitor_endpoint() const = 0;
 
         /**
          * Get the Ethererum address the node will be using
