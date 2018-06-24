@@ -26,7 +26,7 @@ namespace bzn
     class audit : public audit_base, public std::enable_shared_from_this<audit>
     {
     public:
-        audit(std::shared_ptr<bzn::asio::io_context_base>, std::shared_ptr<bzn::node_base> node);
+        audit(std::shared_ptr<bzn::asio::io_context_base>, std::shared_ptr<bzn::node_base> node, size_t mem_size = 10000);
 
         size_t error_count() const override;
 
@@ -35,6 +35,8 @@ namespace bzn
         void handle(const bzn::message& message, std::shared_ptr<bzn::session_base> session) override;
         void handle_commit(const commit_notification&) override;
         void handle_leader_status(const leader_status&) override;
+
+        size_t current_memory_size();
 
         void start() override;
 
@@ -51,6 +53,8 @@ namespace bzn
         
         void handle_leader_data(const leader_status&);
         void handle_leader_made_progress(const leader_status&);
+
+        void trim();
 
         std::list<std::string> recorded_errors;
         const std::shared_ptr<bzn::node_base> node;
@@ -71,6 +75,9 @@ namespace bzn
         bzn::uuid_t last_leader;
         uint64_t last_leader_commit_index;
         bool leader_has_uncommitted_entries = false;
+
+        size_t mem_size;
+        size_t forgotten_error_count = 0;
     };
 
 }

@@ -18,10 +18,11 @@
 
 using namespace bzn;
 
-audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context, std::shared_ptr<bzn::node_base> node)
+audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context, std::shared_ptr<bzn::node_base> node, size_t mem_size)
         : node(node)
         , leader_alive_timer(io_context->make_unique_steady_timer())
         , leader_progress_timer(io_context->make_unique_steady_timer())
+        , mem_size(mem_size)
 {
 
 }
@@ -35,7 +36,7 @@ audit::error_strings() const
 size_t
 audit::error_count() const
 {
-    return this->recorded_errors.size();
+    return this->recorded_errors.size() + this->forgotten_error_count;
 }
 
 void
@@ -112,6 +113,7 @@ void
 audit::report_error(const std::string& short_name, const std::string& description)
 {
     this->recorded_errors.push_back(description);
+    this->trim();
     LOG(fatal) << boost::format("[%1%]: %2%") % short_name % description;
     // TODO: Push to stats.d goes here
 }
@@ -147,6 +149,7 @@ audit::handle_leader_status(const leader_status& leader_status)
     {
         LOG(info) << "audit recording that leader of term " << leader_status.term() << " is '" << leader_status.leader() << "'";
         this->recorded_leaders[leader_status.term()] = leader_status.leader();
+        this->trim();
     }
     else if(this->recorded_leaders[leader_status.term()] != leader_status.leader())
     {
@@ -218,6 +221,7 @@ audit::handle_commit(const commit_notification& commit)
     {
         LOG(info) << "audit recording that message '" << commit.operation() << "' is committed at index " << commit.log_index();
         this->recorded_commits[commit.log_index()] = commit.operation();
+        this->trim();
     }
     else if(this->recorded_commits[commit.log_index()] != commit.operation())
     {
@@ -227,5 +231,35 @@ audit::handle_commit(const commit_notification& commit)
                               % commit.log_index()
                               % commit.operation());
         this->report_error("commitconflict", err);
+    }
+}
+
+size_t
+audit::current_memory_size()
+{
+    return this->recorded_commits.size() + this->recorded_errors.size() + this->recorded_leaders.size();
+}
+
+void
+audit::trim()
+{
+    while(this->recorded_errors.size() > this->mem_size)
+    {
+        this->recorded_errors.pop_front();
+        this->forgotten_error_count++;
+    }
+
+    // Here we're removing the lowest term/log index entries, which is sort of like the oldest entries. I'd rather
+    // remove entries at random, but that's not straightforward to do with STL containers without making some onerous
+    // performance compromise.
+
+    while(this->recorded_leaders.size() > this->mem_size)
+    {
+        this->recorded_leaders.erase(this->recorded_leaders.begin());
+    }
+
+    while(this->recorded_commits.size() > this->mem_size)
+    {
+        this->recorded_commits.erase(this->recorded_commits.begin());
     }
 }
