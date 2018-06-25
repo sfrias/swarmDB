@@ -49,7 +49,9 @@ namespace bzn::asio
     class udp_socket_base
     {
     public:
-        virtual boost::asio::ip::udp::socket& get_udp_socket() = 0;
+        virtual ~udp_socket_base() = default;
+
+        virtual void send_to(const std::string& msg, boost::asio::ip::udp::endpoint ep) = 0;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -127,14 +129,13 @@ namespace bzn::asio
         explicit udp_socket(boost::asio::io_context& io_context)
             : socket(io_context)
         {
-
+            this->socket.open(boost::asio::ip::udp::v4());
         }
 
-        boost::asio::ip::udp::socket& get_udp_socket() override
+        void send_to(const std::string& msg, boost::asio::ip::udp::endpoint ep)
         {
-            return this->socket;
+            this->socket.send_to(boost::asio::buffer(msg), ep);
         }
-
     private:
         boost::asio::ip::udp::socket socket;
     };

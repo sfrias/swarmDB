@@ -28,6 +28,7 @@ audit::audit(std::shared_ptr<bzn::asio::io_context_base> io_context
         , leader_alive_timer(io_context->make_unique_steady_timer())
         , leader_progress_timer(io_context->make_unique_steady_timer())
         , monitor_endpoint(monitor_endpoint)
+        , socket(io_context->make_unique_udp_socket())
 {
 
 }
@@ -53,11 +54,19 @@ audit::start()
                                                             , shared_from_this()
                                                             , std::placeholders::_1
                                                             , std::placeholders::_2));
+        if(this->monitor_endpoint.has_value())
+        {
+            LOG(info) << boost::format("Audit module running, will send stats to %1%:%2%")
+                % this->monitor_endpoint.value().address().to_string()
+                % this->monitor_endpoint.value().port();
+        }
+        else
+        {
+            LOG(info) "Audit module running, but not sending stats anywhere because no monitor configured";
+        }
+         
         LOG(info) << "Audit module running";
         this->reset_leader_alive_timer();
-
-        this->socket = this->io_context->make_unique_udp_socket();
-        this->socket->get_udp_socket().open(boost::asio::ip::udp::v4());
     });
 }
 
@@ -138,7 +147,7 @@ audit::send_to_monitor(const std::string& stat)
                   % this->monitor_endpoint.value().address().to_string()
                   % this->monitor_endpoint.value().port();
 
-    this->socket->get_udp_socket().send_to(boost::asio::buffer(stat), this->monitor_endpoint.value());
+    this->socket->send_to(stat, this->monitor_endpoint.value());
 }
 
 void
@@ -171,6 +180,7 @@ audit::handle_leader_status(const leader_status& leader_status)
     if(this->recorded_leaders.count(leader_status.term()) == 0)
     {
         LOG(info) << "audit recording that leader of term " << leader_status.term() << " is '" << leader_status.leader() << "'";
+        this->send_to_monitor(bzn::NEW_LEADER_METRIC_NAME+":1|c");
         this->recorded_leaders[leader_status.term()] = leader_status.leader();
     }
     else if(this->recorded_leaders[leader_status.term()] != leader_status.leader())
@@ -180,7 +190,7 @@ audit::handle_leader_status(const leader_status& leader_status)
                                              % this->recorded_leaders[leader_status.term()]
                                              % leader_status.term()
                                              % leader_status.leader());
-        this->report_error("leaderconflict", err);
+        this->report_error("fault.leader_conflict", err);
     }
 
     this->reset_leader_alive_timer();
@@ -239,6 +249,8 @@ audit::handle_commit(const commit_notification& commit)
 {
     std::lock_guard<std::mutex> lock(this->audit_lock);
 
+    this->send_to_monitor(bzn::COMMIT_METRIC_NAME + ":1|c");
+
     if(this->recorded_commits.count(commit.log_index()) == 0)
     {
         LOG(info) << "audit recording that message '" << commit.operation() << "' is committed at index " << commit.log_index();
@@ -251,6 +263,6 @@ audit::handle_commit(const commit_notification& commit)
                               % this->recorded_commits[commit.log_index()]
                               % commit.log_index()
                               % commit.operation());
-        this->report_error("commitconflict", err);
+        this->report_error("fault.commit_conflict", err);
     }
 }

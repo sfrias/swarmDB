@@ -72,15 +72,15 @@ namespace bzn
         std::unique_ptr<bzn::asio::steady_timer_base> leader_alive_timer;
         std::unique_ptr<bzn::asio::steady_timer_base> leader_progress_timer;
 
-        std::unique_ptr<bzn::asio::udp_socket_base> socket;
 
-        std::chrono::milliseconds leader_timeout{std::chrono::milliseconds(3000)};
+        std::chrono::milliseconds leader_timeout{std::chrono::milliseconds(30000)};
 
         bzn::uuid_t last_leader;
         uint64_t last_leader_commit_index;
         bool leader_has_uncommitted_entries = false;
 
         std::optional<boost::asio::ip::udp::endpoint> monitor_endpoint;
+        std::unique_ptr<bzn::asio::udp_socket_base> socket;
     };
 
 }
