@@ -57,8 +57,8 @@ audit::start()
         if(this->monitor_endpoint)
         {
             LOG(info) << boost::format("Audit module running, will send stats to %1%:%2%")
-                % this->monitor_endpoint.value().address().to_string()
-                % this->monitor_endpoint.value().port();
+                % this->monitor_endpoint->address().to_string()
+                % this->monitor_endpoint->port();
         }
         else
         {
@@ -144,10 +144,10 @@ audit::send_to_monitor(const std::string& stat)
 
     LOG(debug) << boost::format("Sending stat '%1%' to monitor at %2%:%3%")
                   % stat
-                  % this->monitor_endpoint.value().address().to_string()
-                  % this->monitor_endpoint.value().port();
+                  % this->monitor_endpoint->address().to_string()
+                  % this->monitor_endpoint->port();
 
-    this->socket->send_to(stat, this->monitor_endpoint.value());
+    this->socket->send_to(stat, *(this->monitor_endpoint));
 }
 
 void
