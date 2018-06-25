@@ -89,7 +89,7 @@ audit::handle_leader_alive_timeout(const boost::system::error_code& ec)
         return;
     }
 
-    this->report_error("noleader", str(boost::format("No leader alive [%1%]") % ++(this->leader_dead_count)));
+    this->report_error(bzn::NO_LEADER_METRIC_NAME, str(boost::format("No leader alive [%1%]") % ++(this->leader_dead_count)));
     this->clear_leader_progress_timer();
     this->leader_has_uncommitted_entries = false;
     this->leader_alive_timer->expires_from_now(this->leader_timeout);
@@ -121,7 +121,7 @@ void audit::handle_leader_progress_timeout(const boost::system::error_code& ec)
         return;
     }
 
-    this->report_error("leaderstuck", str(boost::format("Leader alive but not making progress [%1%]") % ++(this->leader_stuck_count)));
+    this->report_error(bzn::LEADER_STUCK_METRIC_NAME, str(boost::format("Leader alive but not making progress [%1%]") % ++(this->leader_stuck_count)));
     this->leader_progress_timer->expires_from_now(this->leader_timeout);
     this->leader_progress_timer->async_wait(std::bind(&audit::handle_leader_progress_timeout, shared_from_this(), std::placeholders::_1));
 }
@@ -190,7 +190,7 @@ audit::handle_leader_status(const leader_status& leader_status)
                                              % this->recorded_leaders[leader_status.term()]
                                              % leader_status.term()
                                              % leader_status.leader());
-        this->report_error("fault.leader_conflict", err);
+        this->report_error(bzn::LEADER_CONFLICT_METRIC_NAME, err);
     }
 
     this->reset_leader_alive_timer();
@@ -263,6 +263,6 @@ audit::handle_commit(const commit_notification& commit)
                               % this->recorded_commits[commit.log_index()]
                               % commit.log_index()
                               % commit.operation());
-        this->report_error("fault.commit_conflict", err);
+        this->report_error(bzn::COMMIT_CONFLICT_METRIC_NAME, err);
     }
 }
