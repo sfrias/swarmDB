@@ -217,7 +217,7 @@ options::validate()
         return false;
     }
 
-    if (!this->get_monitor_endpoint().has_value())
+    if (!this->get_monitor_endpoint())
     {
         LOG(info) << "No monitor address provided; will not send monitor packets";
     }

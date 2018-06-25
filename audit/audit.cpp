@@ -54,7 +54,7 @@ audit::start()
                                                             , shared_from_this()
                                                             , std::placeholders::_1
                                                             , std::placeholders::_2));
-        if(this->monitor_endpoint.has_value())
+        if(this->monitor_endpoint)
         {
             LOG(info) << boost::format("Audit module running, will send stats to %1%:%2%")
                 % this->monitor_endpoint.value().address().to_string()
@@ -137,7 +137,7 @@ audit::report_error(const std::string& short_name, const std::string& descriptio
 void
 audit::send_to_monitor(const std::string& stat)
 {
-    if(!this->monitor_endpoint.has_value())
+    if(!this->monitor_endpoint)
     {
         return;
     }

@@ -20,12 +20,7 @@
 #include <include/boost_asio_beast.hpp>
 #include <mutex>
 #include <boost/asio/ip/udp.hpp>
-#ifndef __APPLE__
 #include <include/optional.hpp>
-#else
-#include <experimental/optional>
-using bzn::optional = std::experimental::optional
-#endif
 
 
 namespace bzn
