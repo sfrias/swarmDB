@@ -19,8 +19,13 @@
 #include <proto/bluzelle.pb.h>
 #include <include/boost_asio_beast.hpp>
 #include <mutex>
-#include <optional>
 #include <boost/asio/ip/udp.hpp>
+#ifndef __APPLE__
+#include <optional>
+#else
+#include <experimental/optional>
+#endif
+
 
 namespace bzn
 {

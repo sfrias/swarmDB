@@ -17,8 +17,13 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <include/bluzelle.hpp>
-#include <optional>
 #include <string>
+#ifndef __APPLE__
+#include <optional>
+#else
+#include <experimental/optional>
+#endif
+
 
 
 namespace bzn
