@@ -33,7 +33,7 @@ public:
     bzn::asio::wait_handler leader_alive_timer_callback;
     bzn::asio::wait_handler leader_progress_timer_callback;
 
-    std::optional<boost::asio::ip::udp::endpoint> endpoint = std::nullopt;
+    bzn::optional<boost::asio::ip::udp::endpoint> endpoint = std::nullopt;
     std::unique_ptr<bzn::asio::Mockudp_socket_base> socket = std::make_unique<bzn::asio::Mockudp_socket_base>();
 
     std::shared_ptr<bzn::audit> audit;
@@ -381,7 +381,7 @@ TEST_F(audit_test, audit_sends_monitor_message_when_leader_conflict)
           boost::asio::ip::address::from_string("127.0.0.1")
         , 8125
     };
-    auto epopt = std::optional<boost::asio::ip::udp::endpoint>{ep};
+    auto epopt = bzn::optional<boost::asio::ip::udp::endpoint>{ep};
     this->endpoint = epopt;
     this->build_audit();
 
@@ -406,7 +406,7 @@ TEST_F(audit_test, audit_sends_monitor_message_when_commit_conflict)
             boost::asio::ip::address::from_string("127.0.0.1")
             , 8125
     };
-    auto epopt = std::optional<boost::asio::ip::udp::endpoint>{ep};
+    auto epopt = bzn::optional<boost::asio::ip::udp::endpoint>{ep};
     this->endpoint = epopt;
 
 

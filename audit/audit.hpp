@@ -21,9 +21,10 @@
 #include <mutex>
 #include <boost/asio/ip/udp.hpp>
 #ifndef __APPLE__
-#include <optional>
+#include <include/optional.hpp>
 #else
 #include <experimental/optional>
+using bzn::optional = std::experimental::optional
 #endif
 
 
@@ -35,7 +36,7 @@ namespace bzn
     public:
         audit(std::shared_ptr<bzn::asio::io_context_base>
                 , std::shared_ptr<bzn::node_base> node
-                , std::optional<boost::asio::ip::udp::endpoint>);
+                , bzn::optional<boost::asio::ip::udp::endpoint>);
 
         size_t error_count() const override;
 
@@ -84,7 +85,7 @@ namespace bzn
         uint64_t last_leader_commit_index;
         bool leader_has_uncommitted_entries = false;
 
-        std::optional<boost::asio::ip::udp::endpoint> monitor_endpoint;
+        bzn::optional<boost::asio::ip::udp::endpoint> monitor_endpoint;
         std::unique_ptr<bzn::asio::udp_socket_base> socket;
     };
 

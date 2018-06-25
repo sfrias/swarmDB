@@ -85,7 +85,7 @@ options::get_listener() const
     }
 }
 
-std::optional<boost::asio::ip::udp::endpoint>
+bzn::optional<boost::asio::ip::udp::endpoint>
 options::get_monitor_endpoint() const
 {
     if(this->config_data.isMember(MONITOR_PORT_KEY) && this->config_data.isMember(MONITOR_ADDRESS_KEY))
@@ -95,7 +95,7 @@ options::get_monitor_endpoint() const
             auto ep = boost::asio::ip::udp::endpoint{boost::asio::ip::address::from_string(
                     this->config_data[MONITOR_ADDRESS_KEY].asString())
                     , uint16_t(this->config_data[MONITOR_PORT_KEY].asUInt())};
-            return std::optional<boost::asio::ip::udp::endpoint>{ep};
+            return bzn::optional<boost::asio::ip::udp::endpoint>{ep};
         }
         catch(std::exception& ex)
         {
@@ -105,7 +105,7 @@ options::get_monitor_endpoint() const
     }
     else
     {
-        return std::optional<boost::asio::ip::udp::endpoint>{};
+        return bzn::optional<boost::asio::ip::udp::endpoint>{};
     }
 }
 
